@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="sentinel-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.5" stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 4L6 12V22C6 33.2 13.8 43.4 24 46C34.2 43.4 42 33.2 42 22V12L24 4Z" stroke="url(#sentinel-grad)" stroke-width="3" stroke-linejoin="round" fill="#0A0B0E"/>
+  <path d="M24 14L16 19V25C16 30.5 19.5 35.6 24 37C28.5 35.6 32 30.5 32 25V19L24 14Z" fill="url(#sentinel-grad)" fill-opacity="0.2" stroke="url(#sentinel-grad)" stroke-width="2"/>
+  <circle cx="24" cy="25" r="3" fill="#10B981"/>
+</svg>
