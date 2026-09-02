@@ -1,65 +1,72 @@
-# SENTINEL — Model Context Protocol (MCP) Integration Specification
+# SENTINEL — Model Context Protocol (MCP) Integration Specification (Phase 7)
 
 ---
 
 ## 1. What is MCP (Model Context Protocol)?
 
-> **Beginner Definition:**  
-> The Model Context Protocol (MCP) is an open standard that allows AI applications to discover and interact with external data sources and tools in a uniform, standardized way. Think of it like a USB-C port for AI: instead of writing custom code for every API, an AI model connects to an MCP server and immediately sees what tools and information are available.
+> **Definition:**  
+> The Model Context Protocol (MCP) is an open standard that enables AI models and autonomous agents to discover and interact with external data sources, tools, and execution services in a uniform, structured format. In SENTINEL, MCP serves as the standardized tool abstraction layer connecting the AI agent to market data and paper trading operations.
 
 ---
 
-## 2. Official Alpaca MCP Architecture
+## 2. Implemented Alpaca MCP Tools
 
-SENTINEL aligns with the official **Alpaca MCP Server (V2)** (`github.com/alpacahq/alpaca-mcp-server`).
+Located in [`backend/src/mcp/alpacaMcpServer.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/mcp/alpacaMcpServer.ts) and [`backend/src/mcp/alpacaMcpClient.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/mcp/alpacaMcpClient.ts):
 
-The official Alpaca MCP server exposes toolsets including:
-* `account`: Checking balances, buying power, portfolio history.
-* `stock-data`: Fetching bars, quotes, market movers, volume, and company snapshots.
-* `trading`: Submitting and managing orders.
-
----
-
-## 3. Division of Responsibilities & Safety Guardrails
-
-A critical engineering question in agentic trading is:  
-**Should the AI model execute orders directly via MCP tools?**
-
-**Answer in SENTINEL: Absolutely NOT.**
-
-If an AI model can directly call an MCP `submit_order` tool without a middleware interceptor, the deterministic risk engine would be rendered useless. The AI could hallucinate, ignore limits, and place arbitrary trades.
-
-SENTINEL enforces a tripartite division:
-
-| Operation Category | Primary Execution Channel | Architectural Rationale |
+| Tool Name | Parameters | Description |
 | :--- | :--- | :--- |
-| **Market Data & Discovery** | **Alpaca MCP Tools** (`stock-data`, quotes, bars, news) | Standardized query interface allowing the agent to discover market state dynamically. |
-| **Portfolio & Account Read** | **Alpaca MCP Tools** (`account`, `positions`) | Read-only inspection tools that carry zero financial risk. |
-| **Trade Proposal & Reasoning** | **Local LLM Service** | Generates hypothesis, calculates confidence, and synthesizes news and indicators into a structured proposal. |
-| **Risk Validation** | **Local Deterministic Risk Engine** | 100% mathematical, non-LLM rule checks (position limits, daily loss limits, confidence floors). |
-| **Paper Order Execution** | **Direct Alpaca API via Risk Guard** | Orders are **only** submitted through a strictly gated execution service after risk approval. |
+| **`get_stock_quote`** | `symbol` (string, required) | Retrieves real-time pricing, 24h change, day high/low, and volume. |
+| **`get_historical_bars`** | `symbol` (string, required), `timeframe` (string, default "1Day"), `limit` (number, default 10) | Fetches historical price bars and volume for technical momentum and moving average calculations. |
+| **`get_account_status`** | `{}` | Inspects Alpaca paper account equity, cash balance, and buying power. |
+| **`get_open_positions`** | `{}` | Retrieves currently open equity positions, market values, and portfolio weight allocations. |
+| **`place_paper_order`** | `symbol` (string), `qty` (number), `side` ("buy" \| "sell"), `type` ("market" \| "limit"), `limit_price` (optional number) | Places a paper trading order. Strictly locked to paper sandbox. |
+| **`screen_market_movers`** | `direction` ("gainers" \| "losers" \| "most_active"), `limit` (number) | Screens top equity movers across US exchanges. |
 
 ---
 
-## 4. MCP Agent Tool Schema
+## 3. Strict Paper-Trading Safety Invariants
 
-When the agent executes its observation cycle, it interacts with MCP tools:
+Even within the MCP tool interface, SENTINEL enforces non-negotiable safety guardrails:
+1. **Paper Sandbox Lock:**  
+   The `place_paper_order` tool invokes `alpacaService.assertPaperSafety()` prior to taking any action. If `ALPACA_PAPER_TRADE === "false"`, execution immediately halts with:  
+   `"CRITICAL SAFETY GUARDRAIL: Live trading disabled! SENTINEL is strictly locked to Alpaca Paper Trading."`
+2. **Endpoint Restriction:**  
+   Base URL must strictly point to `https://paper-api.alpaca.markets`. Any invocation directed at live trading brokers is rejected.
 
-```typescript
-// MCP Tool Discovery Signature Example
-export interface McpMarketTool {
-  name: "get_market_snapshot";
-  description: "Fetches current price, daily change, and volume for a symbol";
-  parameters: {
-    symbol: string;
-  };
-}
+---
 
-export interface McpAccountTool {
-  name: "get_account_balance";
-  description: "Retrieves current cash balance and equity from Alpaca Paper account";
-  parameters: {};
-}
+## 4. MCP REST Endpoints
+
+1. **`GET /api/mcp/tools`**:
+   - Returns discovery metadata and JSON Schemas for all 6 tools.
+   - Conforms to the MCP tool discovery standard.
+2. **`POST /api/mcp/call`**:
+   - Body: `{ "name": "<tool_name>", "arguments": { ... } }`
+   - Invokes the specified tool and returns formatted results.
+
+---
+
+## 5. Automated Test Verification
+
+Automated test suite in [`backend/src/__tests__/mcp.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/mcp.test.ts) verifies:
+* Tool discovery returning all 6 tools with valid JSON Schemas.
+* Execution of `get_stock_quote` for AAPL.
+* Execution of `get_historical_bars` for NVDA.
+* Execution of `get_account_status` and `get_open_positions`.
+* Execution of `screen_market_movers` for gainers and most active tickers.
+* Execution of `place_paper_order` for 1 share of SPY.
+* Enforcement of the paper trading safety invariant on `place_paper_order`.
+* REST endpoints `GET /api/mcp/tools` and `POST /api/mcp/call`.
+
+**Test Results:**
+```text
+ ✓ src/__tests__/alpaca.test.ts (9 tests) 15ms
+ ✓ src/__tests__/database.test.ts (9 tests) 12ms
+ ✓ src/__tests__/llm.test.ts (6 tests) 14ms
+ ✓ src/__tests__/agent.test.ts (5 tests) 16ms
+ ✓ src/__tests__/mcp.test.ts (11 tests) 70ms
+ ✓ src/__tests__/api.test.ts (16 tests) 145ms
+ Test Files  6 passed (6)
+      Tests  56 passed (56)
+   Duration  1.70s
 ```
-
-By keeping read tools open to MCP and restricting execution behind the Risk Engine, SENTINEL achieves modern agentic flexibility without compromising financial safety.

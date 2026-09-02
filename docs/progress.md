@@ -15,7 +15,7 @@ This document tracks the incremental progress across all phases of SENTINEL.
 | **Phase 4** | **Alpaca Paper Trading** | **COMPLETED** | Dedicated Alpaca service with strict paper guardrails, orders, account, positions |
 | **Phase 5** | **LLM Service** | **COMPLETED** | Multi-provider LLM service, Zod structured output, prompts, test suite |
 | **Phase 6** | **AI Trading Agent** | **COMPLETED** | 6-stage autonomous pipeline (Observe -> Analyze -> Decide -> Risk Check -> Execute/Block -> Record) |
-| **Phase 7** | **Alpaca MCP Integration**| PENDING | Model Context Protocol tool discovery & market data screening |
+| **Phase 7** | **Alpaca MCP Integration**| **COMPLETED** | Model Context Protocol tool discovery, 6 standard MCP tools, safety invariants, REST API, test suite |
 | **Phase 8** | **Deterministic Risk Engine**| PENDING | Mathematical risk rules (exposure, loss limits, confidence) |
 | **Phase 9** | **Full Integration** | PENDING | End-to-end integration: UI -> API -> Agent -> Risk -> Alpaca -> DB |
 | **Phase 10**| **Real Frontend Data** | PENDING | Replacing mock data with live backend feeds and state handling |
@@ -38,3 +38,4 @@ This document tracks the incremental progress across all phases of SENTINEL.
 * **Phase 4 (Alpaca Paper Trading)**: Completed. Dedicated Alpaca service with strict paper trading invariants, account, positions, paper orders, rate limit monitoring, and 34 passing automated tests.
 * **Phase 5 (LLM Service)**: Completed. Multi-provider LLM service (Gemini + multi-provider fallback), Zod structured output schema, prompts, agent integration, and 40 passing automated tests.
 * **Phase 6 (AI Trading Agent)**: Completed. 6-stage autonomous pipeline engine (`sentinelAgent`), transparency event broadcasting, database persistence, and 45 passing automated tests.
+* **Phase 7 (Alpaca MCP Integration)**: Completed. 6 standard MCP tools implemented, MCP client & server, safety invariants, REST endpoints, and 56 passing automated tests.

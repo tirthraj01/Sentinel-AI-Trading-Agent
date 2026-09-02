@@ -9,6 +9,7 @@ import {
   analyzeSymbol,
 } from "../controllers/agentController.js";
 import { getRiskStatus } from "../controllers/riskController.js";
+import { getMcpTools, callMcpTool } from "../controllers/mcpController.js";
 import { validateBody } from "../middleware/validate.js";
 import { AnalyzeRequestSchema, CreateTradeRequestSchema } from "../schemas/index.js";
 
@@ -35,3 +36,7 @@ apiRouter.post("/agent/analyze", validateBody(AnalyzeRequestSchema), analyzeSymb
 
 // Risk Engine
 apiRouter.get("/risk/status", getRiskStatus);
+
+// Model Context Protocol (MCP) Endpoints
+apiRouter.get("/mcp/tools", getMcpTools);
+apiRouter.post("/mcp/call", callMcpTool);
