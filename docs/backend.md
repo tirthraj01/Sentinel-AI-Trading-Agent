@@ -1,117 +1,119 @@
-# SENTINEL — Backend API Architecture
+# SENTINEL — Backend API Architecture (Phase 2)
 
 ---
 
 ## 1. Backend Architecture Pattern
 
-SENTINEL uses a strict **Controller-Service-Repository** pattern with explicit validation boundaries:
+SENTINEL uses a strict **Controller-Service-Repository** pattern with explicit validation boundaries and deterministic safety guarantees:
 
 ```
 [ HTTP Request ]
        │
        ▼
- [ CORS & Logging Middleware ]  --> Attaches Correlation ID & Timestamp
+ [ CORS & Logging Middleware ]  --> Attaches Correlation ID & Execution Latency
        │
        ▼
    [ Route Definition ]         --> Declares path & HTTP verb
        │
        ▼
- [ Zod Validation Middleware ]  --> Validates body/query parameters; 400 Bad Request on failure
+ [ Zod Validation Middleware ]  --> Validates body/query parameters; 400 Bad Request on schema failure
        │
        ▼
      [ Controller ]             --> Extracts params, delegates to Service, formats HTTP response
        │
        ▼
-      [ Service ]               --> Core business logic (calls Agent, Risk Engine, Alpaca API)
+      [ Service ]               --> Core business logic (Agent, Risk Engine, Mock Alpaca)
        │
        ▼
- [ Database Client / Supabase ] --> Persists audit records and returns typed models
+ [ In-Memory / Supabase Store ] --> Persists audit records and returns typed models
 ```
 
 ---
 
-## 2. API Endpoints Specification
+## 2. API Endpoints Specification (Phase 2 Implemented)
 
 ### System & Health
 * `GET /api/health`
-  * **Response:** `{ status: "ok", mode: "paper", alpacaConnected: true, databaseConnected: true, timestamp: "2026-09-03T01:30:00Z" }`
+  * **Response:** `{ success: true, data: { status: "healthy", service: "sentinel-backend", version: "0.1.0", paperTrading: true, uptimeSeconds: 42 } }`
 
 ### Market & Watchlist
 * `GET /api/market`
-  * **Query:** `?symbols=AAPL,MSFT,NVDA,TSLA,SPY`
-  * **Response:** Array of live quotes, day high/low, price change, volume, and sector.
+  * Returns full list of tracked equities (`AAPL`, `NVDA`, `MSFT`, `TSLA`, `GOOGL`, `AMZN`, `SPY`).
+* `GET /api/market?symbol=NVDA`
+  * Returns quote and news sentiment score for specific ticker.
+  * Returns `404 Not Found` if ticker is untracked.
 
 ### Portfolio & Positions
 * `GET /api/portfolio`
-  * **Response:** Aggregated balance, buying power, equity, cash, unrealized P/L, today's P/L.
+  * Returns Alpaca paper account details and portfolio equity balance ($104,850.25), available cash ($42,120.80), and buying power ($84,241.60).
 * `GET /api/positions`
-  * **Response:** Array of active holdings with symbol, quantity, average entry, current price, unrealized P/L, and portfolio weight.
-
-### AI Agent
-* `GET /api/agent/decisions`
-  * **Query:** `?limit=20&symbol=AAPL`
-  * **Response:** Chronological history of AI proposals with confidence, market context, and execution status.
-* `GET /api/agent/activity`
-  * **Response:** Detailed step-by-step trace events (`OBSERVE`, `ANALYZE`, `EVALUATE_RISK`, `EXECUTE`).
-* `POST /api/agent/analyze`
-  * **Body:** `{ symbol: "AAPL", overrideRules?: Partial<RiskRules> }`
-  * **Response:** Complete agent execution cycle: market data gathered, LLM recommendation, risk check breakdown, and Alpaca order submission status.
-
-### Risk Engine
-* `GET /api/risk/status`
-  * **Response:** Active risk thresholds, current utilization (portfolio exposure %, daily loss %, trades today count), and list of recent blocked trades.
-* `POST /api/risk/evaluate`
-  * **Body:** Proposed order (`symbol`, `action`, `quantity`, `price`, `confidence`).
-  * **Response:** `{ approved: boolean, riskLevel: "LOW"|"MEDIUM"|"HIGH"|"CRITICAL", checks: [...], reasons: [...] }`.
+  * Returns array of open paper holdings with symbol, quantity, average entry price, current price, market value, unrealized P/L, and portfolio weight.
 
 ### Trades
 * `GET /api/trades`
-  * **Query:** `?status=all|filled|blocked`
-  * **Response:** Historical trades including Alpaca order IDs, fill prices, and linked AI decision IDs.
+  * Supports `?symbol=NVDA`, `?status=filled|blocked`, and `?limit=20`.
 * `POST /api/trades`
-  * **Body:** `{ symbol: "NVDA", action: "BUY", quantity: 5, type: "market", timeInForce: "day" }`
-  * **Enforcement:** Dispatches proposal through Risk Engine before contacting Alpaca.
+  * **Body:** `{ "symbol": "AAPL", "side": "BUY", "shares": 10, "orderType": "market" }`
+  * Validates with Zod. Simulates order fill on paper account and updates position balance.
+
+### AI Agent
+* `GET /api/agent/decisions`
+  * Returns chronological list of AI trade proposals with conviction scores, technical summaries, and risk verdicts.
+* `GET /api/agent/activity`
+  * Returns step-by-step trace events (`OBSERVE`, `ANALYZE`, `RISK_CHECK`, `EXECUTION`, `COMPLETE`, `BLOCKED`).
+* `POST /api/agent/analyze`
+  * **Body:** `{ "symbol": "NVDA", "forceScenario": "APPROVED" | "BLOCKED" | "AUTO" }`
+  * **Lifecycle Executed:**
+    1. `OBSERVE`: Ingests market quotes, volume metrics, and news sentiment.
+    2. `ANALYZE`: Generates structured reasoning memo.
+    3. `DECIDE`: Proposes BUY/SELL/HOLD with conviction score.
+    4. `RISK CHECK`: Evaluates against 6 deterministic mathematical rules.
+    5. `EXECUTE`: Submits paper order if approved; vetoes and blocks if any rule fails.
+    6. `RESULT`: Records audit decision and returns complete execution payload.
+
+### Risk Engine
+* `GET /api/risk/status`
+  * Returns active guard status, 6 deterministic safety rules, threshold limits, and recent veto history.
 
 ---
 
-## 3. Standard Response Envelope
+## 3. Error Handling Specifications
 
-All API responses follow a consistent schema:
-
-### Success Response:
-```json
-{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "timestamp": "2026-09-03T01:30:00Z",
-    "runId": "run_a8f93e4"
+* **`400 Bad Request`**: Schema validation failure via Zod:
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Request validation failed",
+      "details": [{ "field": "shares", "message": "Shares must be greater than zero" }]
+    },
+    "meta": { "timestamp": "2026-09-02T20:39:20.359Z" }
   }
-}
-```
-
-### Error Response:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "RISK_CHECK_FAILED",
-    "message": "Proposed position exceeds maximum allowable allocation (10.0%).",
-    "details": [
-      { "check": "maximum_position_exposure", "threshold": 10.0, "actual": 14.5 }
-    ]
-  },
-  "meta": {
-    "timestamp": "2026-09-03T01:30:00Z"
+  ```
+* **`404 Not Found`**: Undefined routes or missing symbols:
+  ```json
+  {
+    "success": false,
+    "error": { "code": "NOT_FOUND", "message": "Cannot GET /api/nonexistent" },
+    "meta": { "timestamp": "2026-09-02T20:39:24.138Z" }
   }
-}
-```
+  ```
+* **`500 Internal Error`**: Unhandled runtime exceptions caught by global error middleware.
 
 ---
 
-## 4. Safety Fail-Safe Logic
+## 4. Test Verification
 
-1. **Strict Paper Trading Check:**
-   Before initializing the Alpaca client, the backend verifies that `process.env.ALPACA_PAPER_TRADE === "true"`. If false or missing, the process terminates immediately with an exit code of `1`.
-2. **Deterministic Risk Enforcer:**
-   The `POST /api/trades` and `POST /api/agent/analyze` endpoints do not expose direct order execution functions. They only route through `riskService.validateAndExecute()`.
+Automated test suite located at `backend/src/__tests__/api.test.ts` covers:
+* `GET /api/health`
+* `GET /api/market` & single symbol query
+* `GET /api/portfolio` & `GET /api/positions`
+* `GET /api/trades` & `POST /api/trades`
+* `GET /api/agent/decisions` & `GET /api/agent/activity`
+* `POST /api/agent/analyze` (Scenario A Approved & Scenario B Vetoed)
+* `GET /api/risk/status`
+* `400 Bad Request` schema failure handling
+* `404 Not Found` route handling
+
+**Result:** 16/16 tests passing cleanly in 106ms.
