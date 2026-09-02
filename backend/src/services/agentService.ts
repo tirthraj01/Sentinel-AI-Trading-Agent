@@ -8,6 +8,7 @@ import { decisionRepository } from "../db/repositories/decisionRepository.js";
 import { orderRepository } from "../db/repositories/orderRepository.js";
 import { activityRepository } from "../db/repositories/activityRepository.js";
 import { riskRepository } from "../db/repositories/riskRepository.js";
+import { eventBus } from "./eventBus.js";
 import {
   AgentDecision,
   AgentActivityEvent,
@@ -301,6 +302,7 @@ export class SentinelAgent {
       timestamp: new Date().toISOString(),
     };
     await activityRepository.logActivity(event);
+    eventBus.broadcastAgentEvent(event);
     return event;
   }
 }

@@ -16,6 +16,7 @@ import {
 import { getMcpTools, callMcpTool } from "../controllers/mcpController.js";
 import { validateBody } from "../middleware/validate.js";
 import { AnalyzeRequestSchema, CreateTradeRequestSchema } from "../schemas/index.js";
+import { eventBus } from "../services/eventBus.js";
 
 export const apiRouter = Router();
 
@@ -36,6 +37,9 @@ apiRouter.post("/trades", validateBody(CreateTradeRequestSchema), createTrade);
 // AI Agent
 apiRouter.get("/agent/decisions", getAgentDecisions);
 apiRouter.get("/agent/activity", getAgentActivity);
+apiRouter.get("/agent/stream", (_req, res) => {
+  eventBus.registerClient(res);
+});
 apiRouter.post("/agent/analyze", validateBody(AnalyzeRequestSchema), analyzeSymbol);
 
 // Deterministic Risk Engine
