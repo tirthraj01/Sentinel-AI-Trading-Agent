@@ -1,4 +1,4 @@
-# SENTINEL — AI Trading Agent & LLM Service Specification (Phase 5)
+# SENTINEL — AI Trading Agent & Multi-Stage Pipeline Specification (Phase 6)
 
 ---
 
@@ -12,66 +12,66 @@ The SENTINEL Agent functions like an institutional quantitative analyst preparin
 
 ---
 
-## 2. LLM Service Architecture
+## 2. The 6-Stage Autonomous Pipeline
 
-Located in [`backend/src/services/llmService.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/services/llmService.ts):
+Located in [`backend/src/services/agentService.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/services/agentService.ts):
 
-* **Multi-Provider Support:**
-  - **Google Gemini (Recommended):** Integrated via `@google/genai` (default model `gemini-2.5-flash`).
-  - **OpenAI, Anthropic, Groq:** Configurable via `LLM_PROVIDER` in `backend/.env`.
-  - **High-Fidelity Deterministic Mock Engine:** Operates automatically when API keys are absent or invalid, ensuring 100% reliable local test execution.
-
----
-
-## 3. Structured Output Schema
-
-Defined in [`backend/src/schemas/llmSchema.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/schemas/llmSchema.ts):
-
-```typescript
-export const LLMAnalysisOutputSchema = z.object({
-  marketTrend: z.enum(["BULLISH", "BEARISH", "SIDEWAYS"]),
-  keyLevels: z.object({
-    support: z.number().positive(),
-    resistance: z.number().positive(),
-  }),
-  catalystAnalysis: z.string().min(5),
-  newsSentimentScore: z.number().min(0).max(1),
-  tradeRecommendation: z.object({
-    action: z.enum(["BUY", "SELL", "HOLD"]),
-    confidence: z.number().min(0).max(100),
-    reasoning: z.string().min(10),
-    suggestedAllocationPct: z.number().min(0).max(100),
-    suggestedShares: z.number().int().min(0),
-  }),
-});
+```mermaid
+graph TD
+    A["1. OBSERVE<br/>Ingest quotes, 24h volume, news sentiment, balances"] --> B["2. ANALYZE<br/>RSI momentum, 20-EMA trend, institutional volume profile"]
+    B --> C["3. DECIDE<br/>Run LLM structured reasoning with Zod output schema"]
+    C --> D["4. RISK CHECK<br/>Deterministic Risk Engine evaluates 6 hard mathematical rules"]
+    D -->|Passed| E1["5A. EXECUTE<br/>Submit paper order via Alpaca API"]
+    D -->|Vetoed| E2["5B. BLOCK<br/>Reject order, emit veto event, log audit reason"]
+    E1 --> F["6. RECORD & BROADCAST<br/>Persist decision memo, order, and telemetry to Supabase"]
+    E2 --> F
 ```
 
+### Stage Details:
+1. **`OBSERVE`**: Fetches real-time stock quote, day high/low, volume, news headline & sentiment score, and current portfolio equity & cash balances.
+2. **`ANALYZE`**: Estimates technical momentum (RSI, 20-day EMA moving average cross) and evaluates institutional accumulation vs. sector headwinds.
+3. **`DECIDE`**: Calls `llmService.analyzeAsset(...)` generating trade recommendation (`action`, `confidence`, `reasoning`, `suggestedShares`, `suggestedAllocationPct`, `keyLevels`).
+4. **`RISK_CHECK`**: Passes proposal to deterministic risk engine (`riskService.evaluateProposal(...)`). Evaluates all 6 safety rules:
+   * Max Position Exposure ($\le 10\%$)
+   * Max Single Trade Size ($\le 5\%$)
+   * Daily Loss Circuit Breaker ($\le 2\%$)
+   * Minimum AI Confidence ($\ge 70\%$)
+   * Max Daily Executions ($\le 10$)
+   * Max Sector Exposure ($\le 40\%$)
+5. **`EXECUTE OR BLOCK`**:
+   * **If Approved:** Submits paper order via `alpacaService.submitPaperOrder(...)`, receives Alpaca order ID, updates portfolio positions and cash.
+   * **If Blocked:** Rejects execution, logs violated risk rules, creates blocked trade record, and logs compliance audit event.
+6. **`RECORD`**: Saves decision memo to `decisionRepository`, orders to `orderRepository`, and stage trace events to `activityRepository`.
+
 ---
 
-## 4. Prompts & Context Ingestion
+## 3. Transparency Feed & Real-Time Event Stream
 
-Defined in [`backend/src/agents/prompts.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/agents/prompts.ts):
-
-* **`SENTINEL_SYSTEM_PROMPT`:** Establishes risk-first mandate, capital preservation priority, and strict JSON requirements.
-* **`buildMarketAnalysisPrompt`:** Ingests asset price action, 24h volume, session high/low, sector, news sentiment, and portfolio allocation context.
+Each stage emits structured telemetry events containing:
+* `stage`: `"OBSERVE" | "ANALYZE" | "DECIDE" | "RISK_CHECK" | "EXECUTION" | "COMPLETE" | "BLOCKED"`
+* `title`: Concise human-readable milestone (e.g. *"Alpaca Paper Order Filled: BUY 15 NVDA"*)
+* `message`: Detailed explanation with exact prices, shares, and risk rules evaluated
+* `status`: `"success" | "warning" | "error" | "info"`
+* `details`: JSON payload with technical indicators, checks, and fill prices
 
 ---
 
-## 5. Automated Test Verification
+## 4. Automated Test Verification
 
-Automated test suite in [`backend/src/__tests__/llm.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/llm.test.ts) verifies:
-* Structured memo generation for `NVDA` (`BUY`, bullish breakout, support/resistance levels).
-* Risk-aware memo generation for `AAPL` (`HOLD`, respecting the 10.0% single-asset exposure ceiling).
-* Strict schema validation against `LLMAnalysisOutputSchema` for both assets.
-* Rejection of malformed schema payloads (invalid enums, out-of-bounds sentiment or confidence).
-* Confidence score format adherence (numeric, 0–100 range).
+Automated test suite in [`backend/src/__tests__/agent.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/agent.test.ts) verifies:
+* **Scenario A (Approved Flow - NVDA):** Full 6-stage execution, 6/6 risk rules passed, order submitted via Alpaca, status `APPROVED_EXECUTED`.
+* **Scenario B (Vetoed Flow - TSLA):** Low conviction / excess allocation caught by risk engine, status `BLOCKED_BY_RISK`, zero broker orders submitted, veto logged in audit trail.
+* **Transparency Stream:** Verified chronological stage progression (`OBSERVE` $\to$ `ANALYZE` $\to$ `DECIDE` $\to$ `RISK_CHECK` $\to$ `COMPLETE`).
+* **Repository Persistence:** Decision memos, open orders, and activity logs accurately retrieved from repository layer.
 
 **Test Results:**
 ```text
- ✓ src/__tests__/alpaca.test.ts (9 tests) 9ms
- ✓ src/__tests__/database.test.ts (9 tests) 9ms
- ✓ src/__tests__/llm.test.ts (6 tests) 10ms
- ✓ src/__tests__/api.test.ts (16 tests) 104ms
- Test Files  4 passed (4)
-      Tests  40 passed (40)
+ ✓ src/__tests__/alpaca.test.ts (9 tests) 11ms
+ ✓ src/__tests__/database.test.ts (9 tests) 10ms
+ ✓ src/__tests__/llm.test.ts (6 tests) 14ms
+ ✓ src/__tests__/agent.test.ts (5 tests) 10ms
+ ✓ src/__tests__/api.test.ts (16 tests) 160ms
+ Test Files  5 passed (5)
+      Tests  45 passed (45)
+   Duration  1.38s
 ```

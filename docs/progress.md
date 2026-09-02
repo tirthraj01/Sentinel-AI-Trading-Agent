@@ -14,7 +14,7 @@ This document tracks the incremental progress across all phases of SENTINEL.
 | **Phase 3** | **Database (Supabase)** | **COMPLETED** | PostgreSQL schema migration, repository layer, fallback mode, test suite |
 | **Phase 4** | **Alpaca Paper Trading** | **COMPLETED** | Dedicated Alpaca service with strict paper guardrails, orders, account, positions |
 | **Phase 5** | **LLM Service** | **COMPLETED** | Multi-provider LLM service, Zod structured output, prompts, test suite |
-| **Phase 6** | **AI Trading Agent** | PENDING | Multi-step agent workflow (Observe -> Reason -> Propose -> Audit) |
+| **Phase 6** | **AI Trading Agent** | **COMPLETED** | 6-stage autonomous pipeline (Observe -> Analyze -> Decide -> Risk Check -> Execute/Block -> Record) |
 | **Phase 7** | **Alpaca MCP Integration**| PENDING | Model Context Protocol tool discovery & market data screening |
 | **Phase 8** | **Deterministic Risk Engine**| PENDING | Mathematical risk rules (exposure, loss limits, confidence) |
 | **Phase 9** | **Full Integration** | PENDING | End-to-end integration: UI -> API -> Agent -> Risk -> Alpaca -> DB |
@@ -37,3 +37,4 @@ This document tracks the incremental progress across all phases of SENTINEL.
 * **Phase 3 (Database / Supabase)**: Completed. 9 PostgreSQL tables defined, Supabase client with graceful in-memory fallback, repository layer, seed scripts, and 25 passing automated tests.
 * **Phase 4 (Alpaca Paper Trading)**: Completed. Dedicated Alpaca service with strict paper trading invariants, account, positions, paper orders, rate limit monitoring, and 34 passing automated tests.
 * **Phase 5 (LLM Service)**: Completed. Multi-provider LLM service (Gemini + multi-provider fallback), Zod structured output schema, prompts, agent integration, and 40 passing automated tests.
+* **Phase 6 (AI Trading Agent)**: Completed. 6-stage autonomous pipeline engine (`sentinelAgent`), transparency event broadcasting, database persistence, and 45 passing automated tests.

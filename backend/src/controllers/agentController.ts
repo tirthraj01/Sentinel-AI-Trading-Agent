@@ -1,21 +1,17 @@
 import { Request, Response } from "express";
-import { mockAgentService } from "../services/mockAgentService.js";
+import { sentinelAgent } from "../services/agentService.js";
+import { decisionRepository } from "../db/repositories/decisionRepository.js";
+import { activityRepository } from "../db/repositories/activityRepository.js";
 import { AnalyzeRequestInput } from "../schemas/index.js";
 
-export const getAgentDecisions = (req: Request, res: Response): void => {
+export const getAgentDecisions = async (req: Request, res: Response): Promise<void> => {
   const { symbol, limit } = req.query;
-  let decisions = mockAgentService.getDecisions();
+  const numLimit = limit ? parseInt(limit as string, 10) : 20;
 
-  if (symbol && typeof symbol === "string") {
-    decisions = decisions.filter((d) => d.symbol === symbol.toUpperCase());
-  }
-
-  if (limit) {
-    const numLimit = parseInt(limit as string, 10);
-    if (!isNaN(numLimit) && numLimit > 0) {
-      decisions = decisions.slice(0, numLimit);
-    }
-  }
+  const decisions = await decisionRepository.getDecisions({
+    symbol: typeof symbol === "string" ? symbol : undefined,
+    limit: !isNaN(numLimit) ? numLimit : 20,
+  });
 
   res.status(200).json({
     success: true,
@@ -27,16 +23,11 @@ export const getAgentDecisions = (req: Request, res: Response): void => {
   });
 };
 
-export const getAgentActivity = (req: Request, res: Response): void => {
+export const getAgentActivity = async (req: Request, res: Response): Promise<void> => {
   const { limit } = req.query;
-  let activities = mockAgentService.getActivities();
+  const numLimit = limit ? parseInt(limit as string, 10) : 20;
 
-  if (limit) {
-    const numLimit = parseInt(limit as string, 10);
-    if (!isNaN(numLimit) && numLimit > 0) {
-      activities = activities.slice(0, numLimit);
-    }
-  }
+  const activities = await activityRepository.getActivities(!isNaN(numLimit) ? numLimit : 20);
 
   res.status(200).json({
     success: true,
@@ -51,7 +42,7 @@ export const getAgentActivity = (req: Request, res: Response): void => {
 export const analyzeSymbol = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as AnalyzeRequestInput;
 
-  const decision = await mockAgentService.runAnalysisCycle({
+  const decision = await sentinelAgent.runPipeline({
     symbol: body.symbol,
     forceScenario: body.forceScenario,
   });

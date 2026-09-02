@@ -127,7 +127,7 @@ export interface AgentActivityEvent {
   id: string;
   runId: string;
   timestamp: string;
-  stage: "OBSERVE" | "ANALYZE" | "RISK_CHECK" | "EXECUTION" | "COMPLETE" | "BLOCKED";
+  stage: "OBSERVE" | "ANALYZE" | "DECIDE" | "RISK_CHECK" | "EXECUTION" | "COMPLETE" | "BLOCKED";
   title: string;
   message: string;
   status: "success" | "warning" | "error" | "info";
