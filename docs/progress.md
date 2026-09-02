@@ -11,7 +11,7 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 | **Phase 0** | **Architecture & Planning** | **COMPLETED** | System architecture, ER diagrams, docs, plans, project scaffold |
 | **Phase 1** | **Frontend (Mock Data)** | **COMPLETED** | React 18 + Tailwind + Vite dark terminal dashboard with 9 pages, mascot, asset charts |
 | **Phase 2** | **Backend (Mock Services)** | **COMPLETED** | Express + TypeScript + Zod REST API endpoints, mock services, test suite |
-| **Phase 3** | **Database (Supabase)** | PENDING | PostgreSQL schema migration, repository layer, audit tables |
+| **Phase 3** | **Database (Supabase)** | **COMPLETED** | PostgreSQL schema migration, repository layer, fallback mode, test suite |
 | **Phase 4** | **Alpaca Paper Trading** | PENDING | Dedicated Alpaca service with strict paper guardrails |
 | **Phase 5** | **LLM Service** | PENDING | Configurable LLM integration with Zod structured output & reasoning |
 | **Phase 6** | **AI Trading Agent** | PENDING | Multi-step agent workflow (Observe -> Reason -> Propose -> Audit) |
@@ -34,3 +34,4 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 * **Phase 0 (Architecture & Planning)**: Completed. All 12 system documentation specifications created.
 * **Phase 1 (Frontend)**: Completed. Complete 9-page AI fintech trading terminal with original SentinelMascot, Recharts charts, and AskSentinelChat.
 * **Phase 2 (Backend)**: Completed. Express + TypeScript REST API running on `http://localhost:5000` with 16 automated integration tests passing.
+* **Phase 3 (Database / Supabase)**: Completed. 9 PostgreSQL tables defined, Supabase client with graceful in-memory fallback, repository layer, seed scripts, and 25 passing automated tests.

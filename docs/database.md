@@ -1,4 +1,4 @@
-# SENTINEL — Database Architecture & Schema Specification
+# SENTINEL — Database Architecture & Schema Specification (Phase 3)
 
 ---
 
@@ -6,213 +6,154 @@
 
 ```mermaid
 erDiagram
-    AGENT_RUNS ||--o{ AGENT_DECISIONS : produces
-    AGENT_RUNS ||--o{ AGENT_ACTIVITY : records
-    AGENT_DECISIONS ||--o| RISK_EVENTS : evaluates
-    AGENT_DECISIONS ||--o| TRADES : executes
-    PORTFOLIOS ||--o{ POSITIONS : contains
-    PORTFOLIOS ||--o{ TRADES : logs
+    ACCOUNTS ||--o{ POSITIONS : holds
+    ACCOUNTS ||--o{ ORDERS : submits
+    ORDERS ||--o| TRADE_HISTORY : logs
+    AGENT_DECISIONS ||--o| RISK_EVALUATIONS : validates
+    AGENT_DECISIONS ||--o| ORDERS : triggers
+    AGENT_LOGS }o--|| AGENT_DECISIONS : details
 
-    AGENT_RUNS {
+    ACCOUNTS {
         uuid id PK
-        timestamp started_at
-        timestamp completed_at
-        text trigger_source "MANUAL | SCHEDULED"
-        text status "RUNNING | COMPLETED | FAILED"
-        jsonb metadata
-    }
-
-    AGENT_DECISIONS {
-        uuid id PK
-        uuid run_id FK
-        text symbol
-        text decision "BUY | SELL | HOLD"
-        numeric confidence "0 to 100"
-        text reasoning
-        numeric suggested_allocation_pct
-        jsonb market_snapshot
-        jsonb news_sentiment
-        timestamp created_at
-    }
-
-    RISK_EVENTS {
-        uuid id PK
-        uuid decision_id FK
-        uuid run_id FK
-        boolean approved
-        text risk_level "LOW | MEDIUM | HIGH | CRITICAL"
-        jsonb checks_evaluated
-        text[] failure_reasons
-        timestamp evaluated_at
-    }
-
-    TRADES {
-        uuid id PK
-        uuid decision_id FK
-        text alpaca_order_id
-        text symbol
-        text side "BUY | SELL"
-        numeric quantity
-        numeric estimated_price
-        numeric executed_price
-        text order_type "market | limit"
-        text status "submitted | filled | rejected | canceled"
-        timestamp submitted_at
-        timestamp executed_at
-    }
-
-    AGENT_ACTIVITY {
-        uuid id PK
-        uuid run_id FK
-        text stage "OBSERVE | ANALYZE | RISK_CHECK | EXECUTION"
-        text message
-        jsonb payload
-        timestamp created_at
-    }
-
-    PORTFOLIOS {
-        uuid id PK
+        varchar account_number UK
+        varchar status
         numeric equity
         numeric cash
         numeric buying_power
-        numeric daily_pl
-        numeric total_pl
-        timestamp updated_at
+        boolean is_paper
+        timestamptz updated_at
     }
 
     POSITIONS {
         uuid id PK
-        text symbol
-        numeric quantity
+        uuid account_id FK
+        varchar symbol UK
+        numeric shares
         numeric avg_entry_price
         numeric current_price
-        numeric unrealized_pl
         numeric market_value
-        numeric portfolio_pct
-        timestamp updated_at
+        numeric unrealized_pl
+        numeric allocation_percent
     }
 
-    WATCHLISTS {
+    ORDERS {
         uuid id PK
-        text symbol
-        text name
-        text sector
-        boolean active
-        timestamp created_at
+        varchar alpaca_order_id UK
+        varchar symbol
+        varchar side "BUY | SELL"
+        numeric shares
+        varchar order_type
+        numeric executed_price
+        varchar status "submitted | filled | blocked"
+        varchar decision_id FK
+    }
+
+    AGENT_DECISIONS {
+        varchar id PK
+        varchar run_id
+        varchar symbol
+        varchar decision "BUY | SELL | HOLD"
+        numeric confidence "0-100"
+        text reasoning
+        numeric suggested_allocation_pct
+        jsonb market_summary
+        jsonb news_sentiment
+        varchar status "APPROVED_EXECUTED | BLOCKED_BY_RISK"
+    }
+
+    RISK_EVALUATIONS {
+        uuid id PK
+        varchar decision_id FK
+        boolean approved
+        varchar risk_level "LOW | MEDIUM | HIGH | CRITICAL"
+        jsonb reasons
+        jsonb checks
+        timestamptz evaluated_at
+    }
+
+    AGENT_LOGS {
+        varchar id PK
+        varchar run_id
+        varchar stage "OBSERVE | ANALYZE | RISK_CHECK | EXECUTION"
+        varchar title
+        text message
+        varchar status
+        timestamptz created_at
+    }
+
+    RISK_RULES {
+        varchar id PK
+        varchar name
+        text description
+        numeric limit_value
+        varchar unit
+        boolean is_active
+    }
+
+    AUDIT_LOGS {
+        uuid id PK
+        varchar event_type
+        varchar entity_type
+        varchar entity_id
+        jsonb payload
+        timestamptz created_at
     }
 ```
 
 ---
 
-## 2. Complete PostgreSQL Schema DDL
+## 2. Table Specifications & Schema
 
-You can execute this script in the Supabase SQL editor:
+All 9 tables are created via [`backend/src/db/migrations/001_initial_schema.sql`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/db/migrations/001_initial_schema.sql):
 
-```sql
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+1. **`accounts`**: Paper trading accounts with equity, cash, and buying power.
+2. **`positions`**: Active paper holdings with cost basis, current price, and allocation weight.
+3. **`orders`**: Executed and blocked order history mapped to Alpaca order IDs.
+4. **`trade_history`**: Trade execution audit records.
+5. **`agent_decisions`**: AI Agent reasoning memos, conviction scores, and trade proposals.
+6. **`risk_evaluations`**: Deterministic mathematical risk verdicts with individual check results.
+7. **`agent_logs`**: Chronological multi-stage pipeline event log (`OBSERVE` $\to$ `ANALYZE` $\to$ `DECIDE` $\to$ `RISK_CHECK` $\to$ `EXECUTION` $\to$ `RESULT`).
+8. **`risk_rules`**: Configurable deterministic risk parameters.
+9. **`audit_logs`**: Immutable security audit trail.
 
--- 1. Agent Runs: High-level session lifecycle
-CREATE TABLE IF NOT EXISTS agent_runs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at TIMESTAMPTZ,
-    trigger_source TEXT NOT NULL DEFAULT 'MANUAL',
-    status TEXT NOT NULL DEFAULT 'RUNNING' CHECK (status IN ('RUNNING', 'COMPLETED', 'FAILED')),
-    metadata JSONB DEFAULT '{}'::jsonb
-);
+---
 
--- 2. Agent Decisions: AI Proposals and Rationale
-CREATE TABLE IF NOT EXISTS agent_decisions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    run_id UUID REFERENCES agent_runs(id) ON DELETE CASCADE,
-    symbol VARCHAR(12) NOT NULL,
-    decision VARCHAR(10) NOT NULL CHECK (decision IN ('BUY', 'SELL', 'HOLD')),
-    confidence NUMERIC(5, 2) NOT NULL CHECK (confidence >= 0 AND confidence <= 100),
-    reasoning TEXT NOT NULL,
-    suggested_allocation_pct NUMERIC(5, 2) DEFAULT 0.0,
-    market_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
-    news_sentiment JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+## 3. Seed Data Script
 
--- 3. Risk Events: Deterministic Risk Audits
-CREATE TABLE IF NOT EXISTS risk_events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    decision_id UUID REFERENCES agent_decisions(id) ON DELETE SET NULL,
-    run_id UUID REFERENCES agent_runs(id) ON DELETE CASCADE,
-    approved BOOLEAN NOT NULL,
-    risk_level VARCHAR(15) NOT NULL CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
-    checks_evaluated JSONB NOT NULL DEFAULT '[]'::jsonb,
-    failure_reasons TEXT[] DEFAULT ARRAY[]::TEXT[],
-    evaluated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+Initial sample data is provided in [`backend/src/db/seed.sql`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/db/seed.sql):
+* 1 Paper Account (`alpaca-paper-acc-sentinel-01`, \$104,850.25 equity, \$42,120.80 cash).
+* 6 Standard Risk Rules (10% position limit, 5% trade limit, 2% drawdown circuit breaker, 70% min AI conviction, 10 daily trades, 40% sector cap).
+* 5 Active Holdings (`AAPL`, `NVDA`, `MSFT`, `AMZN`, `SPY`).
+* Scenario A Approved Decision memo (`NVDA` with 86% confidence).
+* Scenario B Vetoed Decision memo (`TSLA` blocked by risk engine).
 
--- 4. Trades: Alpaca Paper Trade Executions
-CREATE TABLE IF NOT EXISTS trades (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    decision_id UUID REFERENCES agent_decisions(id) ON DELETE SET NULL,
-    alpaca_order_id VARCHAR(64) UNIQUE,
-    symbol VARCHAR(12) NOT NULL,
-    side VARCHAR(8) NOT NULL CHECK (side IN ('BUY', 'SELL')),
-    quantity NUMERIC(12, 4) NOT NULL,
-    estimated_price NUMERIC(12, 4) NOT NULL,
-    executed_price NUMERIC(12, 4),
-    order_type VARCHAR(20) NOT NULL DEFAULT 'market',
-    status VARCHAR(20) NOT NULL DEFAULT 'submitted',
-    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    executed_at TIMESTAMPTZ
-);
+---
 
--- 5. Agent Activity: Granular Trace Timeline
-CREATE TABLE IF NOT EXISTS agent_activity (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    run_id UUID REFERENCES agent_runs(id) ON DELETE CASCADE,
-    stage VARCHAR(30) NOT NULL CHECK (stage IN ('OBSERVE', 'ANALYZE', 'RISK_CHECK', 'EXECUTION', 'ERROR')),
-    message TEXT NOT NULL,
-    payload JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+## 4. Fallback Architecture
 
--- 6. Portfolios Snapshot
-CREATE TABLE IF NOT EXISTS portfolios (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    equity NUMERIC(14, 2) NOT NULL,
-    cash NUMERIC(14, 2) NOT NULL,
-    buying_power NUMERIC(14, 2) NOT NULL,
-    daily_pl NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
-    total_pl NUMERIC(14, 2) NOT NULL DEFAULT 0.0,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+SENTINEL implements **resilient graceful degradation**:
+* If `SUPABASE_URL` and `SUPABASE_KEY` are not provided in `backend/.env`, the system detects this at startup and logs:
+  ```text
+  ℹ️  SUPABASE_URL not configured or using placeholder. Running in resilient IN-MEMORY FALLBACK mode.
+  ```
+* Repositories (`positionRepository`, `orderRepository`, `decisionRepository`, `activityRepository`, `riskRepository`) transparently operate on the in-memory state store.
+* Once Supabase credentials are added to `.env`, repositories seamlessly write and query live PostgreSQL without modifying a single line of application code.
 
--- 7. Positions Snapshot
-CREATE TABLE IF NOT EXISTS positions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    symbol VARCHAR(12) NOT NULL UNIQUE,
-    quantity NUMERIC(12, 4) NOT NULL,
-    avg_entry_price NUMERIC(12, 4) NOT NULL,
-    current_price NUMERIC(12, 4) NOT NULL,
-    unrealized_pl NUMERIC(12, 4) NOT NULL DEFAULT 0.0,
-    market_value NUMERIC(14, 2) NOT NULL,
-    portfolio_pct NUMERIC(5, 2) NOT NULL DEFAULT 0.0,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+---
 
--- 8. Watchlists
-CREATE TABLE IF NOT EXISTS watchlists (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    symbol VARCHAR(12) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
-    sector VARCHAR(60),
-    active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+## 5. Automated Test Verification
 
--- Optimization Indexes
-CREATE INDEX IF NOT EXISTS idx_agent_decisions_symbol ON agent_decisions(symbol);
-CREATE INDEX IF NOT EXISTS idx_agent_decisions_created_at ON agent_decisions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_trades_alpaca_order_id ON trades(alpaca_order_id);
-CREATE INDEX IF NOT EXISTS idx_trades_submitted_at ON trades(submitted_at DESC);
-CREATE INDEX IF NOT EXISTS idx_agent_activity_run_id ON agent_activity(run_id);
-CREATE INDEX IF NOT EXISTS idx_risk_events_approved ON risk_events(approved);
+Automated database test suite in [`backend/src/__tests__/database.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/database.test.ts) verifies:
+* Client initialization & fallback mode assertion.
+* Reading and upserting positions (`AAPL`, `NVDA`, `TEST`).
+* Writing and querying paper orders.
+* Writing AI agent decision memos with nested risk evaluation records.
+* Logging and retrieving agent activity stream events.
+
+**Test Results:**
+```text
+ ✓ src/__tests__/database.test.ts (9 tests) 5ms
+ ✓ src/__tests__/api.test.ts (16 tests) 84ms
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
 ```
