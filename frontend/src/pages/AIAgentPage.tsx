@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Bot, Sparkles } from "lucide-react";
+import {
+  Sparkles,
+  Eye,
+  BrainCircuit,
+  Lightbulb,
+  ShieldCheck,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  Lock,
+} from "lucide-react";
+import { SentinelMascot } from "../components/SentinelMascot";
 import { AIDecisionCard } from "../components/AIDecisionCard";
 import { MOCK_DECISIONS } from "../data/mockData";
 
@@ -18,20 +29,87 @@ export const AIAgentPage: React.FC = () => {
     return dec.decision === decisionFilter;
   });
 
+  const pipelineSteps = [
+    {
+      id: "obs",
+      name: "OBSERVE",
+      icon: Eye,
+      status: "complete",
+      statusLabel: "✓ Complete",
+      desc: "Quotes, order books & news sentiment",
+      color: "text-cyan-400",
+      border: "border-cyan-500/40",
+      bg: "bg-cyan-500/10",
+    },
+    {
+      id: "ana",
+      name: "ANALYZE",
+      icon: BrainCircuit,
+      status: "complete",
+      statusLabel: "✓ Complete",
+      desc: "Technical momentum & multi-modal signals",
+      color: "text-indigo-400",
+      border: "border-indigo-500/40",
+      bg: "bg-indigo-500/10",
+    },
+    {
+      id: "dec",
+      name: "DECIDE",
+      icon: Lightbulb,
+      status: "complete",
+      statusLabel: "✓ Complete",
+      desc: "Hypothesis proposal & confidence scoring",
+      color: "text-purple-400",
+      border: "border-purple-500/40",
+      bg: "bg-purple-500/10",
+    },
+    {
+      id: "risk",
+      name: "RISK CHECK",
+      icon: ShieldCheck,
+      status: "active",
+      statusLabel: "● Enforcing",
+      desc: "Deterministic mathematical rule guard",
+      color: "text-emerald-400",
+      border: "border-emerald-500/40",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      id: "exe",
+      name: "EXECUTE",
+      icon: Send,
+      status: "waiting",
+      statusLabel: "○ Guarded",
+      desc: "Alpaca Paper Trading (Only if approved)",
+      color: "text-amber-400",
+      border: "border-amber-500/40",
+      bg: "bg-amber-500/10",
+    },
+    {
+      id: "res",
+      name: "RESULT",
+      icon: CheckCircle2,
+      status: "complete",
+      statusLabel: "✓ Audited",
+      desc: "PostgreSQL immutable decision trail",
+      color: "text-slate-300",
+      border: "border-slate-500/40",
+      bg: "bg-slate-500/10",
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Bot className="h-5 w-5" />
-            </div>
+          <div className="flex items-center gap-3">
+            <SentinelMascot size="md" state="analyzing" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                AI Trading Intelligence
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                AI Trading Command Center
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Explainable market reasoning memos, multi-signal synthesis & trade proposals
               </p>
             </div>
@@ -40,11 +118,73 @@ export const AIAgentPage: React.FC = () => {
 
         <button
           onClick={() => onOpenAnalysis("NVDA")}
-          className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-indigo-700 active:scale-95 transition-all self-start sm:self-auto"
+          className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all self-start sm:self-auto"
         >
           <Sparkles className="h-4 w-4" />
-          <span>Trigger New Agent Run</span>
+          <span>Launch Agent Cycle</span>
         </button>
+      </div>
+
+      {/* Visual Interactive Agent Pipeline */}
+      <div className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Agent Decision & Execution Pipeline
+            </h3>
+            <p className="text-xs text-slate-400">
+              Deterministic separation: The AI proposes, the Risk Engine holds veto authority
+            </p>
+          </div>
+          <span className="text-[11px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">
+            Automated State Machine
+          </span>
+        </div>
+
+        {/* Pipeline Nodes Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+          {pipelineSteps.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div
+                key={step.id}
+                className={`p-3.5 rounded-2xl border ${step.border} ${step.bg} flex flex-col justify-between space-y-3 relative group transition-all`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-slate-300">
+                      {step.name}
+                    </span>
+                    <Icon className={`h-4 w-4 ${step.color}`} />
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-tight">
+                    {step.desc}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                  <span className={`text-[10px] font-bold ${step.color}`}>
+                    {step.statusLabel}
+                  </span>
+                  {step.id === "risk" && (
+                    <span title="Deterministic Veto Lock">
+                      <Lock className="h-3 w-3 text-emerald-400" />
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Safety & Compliance Disclaimer Banner */}
+      <div className="rounded-2xl bg-[#0E1015] border border-white/10 p-4 flex items-start gap-3">
+        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-slate-400 leading-relaxed">
+          <strong className="text-slate-200">AI-Generated Financial Analysis Disclaimer: </strong>
+          All recommendations are synthetic inferences generated by Large Language Models for paper simulation. The AI does not guarantee market returns. Execution only occurs after mathematical risk validation.
+        </div>
       </div>
 
       {/* Filter Tabs */}

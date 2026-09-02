@@ -1,15 +1,18 @@
 import React from "react";
-import { TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Sparkles, ChevronRight } from "lucide-react";
 import { Position } from "../types";
+import { RiskMeter } from "./RiskMeter";
 
 interface PositionTableProps {
   positions: Position[];
   onAnalyzeSymbol?: (symbol: string) => void;
+  onSelectPosition?: (position: Position) => void;
 }
 
 export const PositionTable: React.FC<PositionTableProps> = ({
   positions,
   onAnalyzeSymbol,
+  onSelectPosition,
 }) => {
   return (
     <div className="glass-panel rounded-3xl overflow-hidden border border-white/10">
@@ -19,7 +22,7 @@ export const PositionTable: React.FC<PositionTableProps> = ({
             Open Portfolio Positions
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Active paper holdings monitored by Sentinel Risk Guard
+            Click any row to open interactive asset chart & risk drawer
           </p>
         </div>
         <span className="text-xs font-semibold bg-white/5 border border-white/10 px-2.5 py-1 rounded-full text-slate-300">
@@ -37,8 +40,8 @@ export const PositionTable: React.FC<PositionTableProps> = ({
               <th className="py-3 px-4 font-semibold text-right">Current Price</th>
               <th className="py-3 px-4 font-semibold text-right">Market Value</th>
               <th className="py-3 px-4 font-semibold text-right">Unrealized P/L</th>
-              <th className="py-3 px-4 font-semibold text-right">Portfolio Weight</th>
-              <th className="py-3 px-5 font-semibold text-center">AI Action</th>
+              <th className="py-3 px-5 font-semibold min-w-[160px]">Portfolio Weight</th>
+              <th className="py-3 px-5 font-semibold text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -47,18 +50,22 @@ export const PositionTable: React.FC<PositionTableProps> = ({
               return (
                 <tr
                   key={pos.symbol}
-                  className="hover:bg-white/[0.03] transition-colors group"
+                  onClick={() => onSelectPosition?.(pos)}
+                  className="hover:bg-white/[0.04] transition-all cursor-pointer group"
                 >
                   <td className="py-3.5 px-5">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-mono font-bold text-xs text-indigo-300">
+                      <div className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-mono font-bold text-xs text-indigo-300 group-hover:border-indigo-500/50 transition-colors">
                         {pos.symbol.slice(0, 2)}
                       </div>
                       <div>
-                        <span className="font-bold text-white font-mono block text-sm">
-                          {pos.symbol}
-                        </span>
-                        <span className="text-[11px] text-slate-400 truncate max-w-[120px] block">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-white font-mono block text-sm">
+                            {pos.symbol}
+                          </span>
+                          <ChevronRight className="h-3 w-3 text-slate-600 group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all" />
+                        </div>
+                        <span className="text-[11px] text-slate-400 truncate max-w-[130px] block">
                           {pos.name}
                         </span>
                       </div>
@@ -84,21 +91,17 @@ export const PositionTable: React.FC<PositionTableProps> = ({
                       </span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-tabular text-slate-300">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-12 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-indigo-400"
-                          style={{ width: `${Math.min(pos.allocationPercent * 4, 100)}%` }}
-                        />
-                      </div>
-                      <span>{pos.allocationPercent.toFixed(1)}%</span>
-                    </div>
+                  <td className="py-3.5 px-5" onClick={(e) => e.stopPropagation()}>
+                    <RiskMeter
+                      currentPct={pos.allocationPercent}
+                      maxLimit={10.0}
+                      size="sm"
+                    />
                   </td>
-                  <td className="py-3.5 px-5 text-center">
+                  <td className="py-3.5 px-5 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onAnalyzeSymbol?.(pos.symbol)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95"
+                      className="inline-flex items-center gap-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 text-[11px] font-semibold transition-all hover:scale-105 active:scale-95"
                     >
                       <Sparkles className="h-3 w-3" />
                       <span>Analyze</span>

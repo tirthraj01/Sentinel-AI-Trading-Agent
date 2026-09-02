@@ -3,17 +3,21 @@ import { Outlet, NavLink } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 import { Sidebar } from "../components/Sidebar";
 import { AnalysisModal } from "../components/AnalysisModal";
+import { AskSentinelChat } from "../components/AskSentinelChat";
 import {
   LayoutDashboard,
   TrendingUp,
   Layers,
   Bot,
   ShieldAlert,
+  X,
 } from "lucide-react";
 
 export const AppLayout: React.FC = () => {
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [selectedSymbolForAnalysis, setSelectedSymbolForAnalysis] = useState("NVDA");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleOpenAnalysis = (symbol: string = "NVDA") => {
     setSelectedSymbolForAnalysis(symbol);
@@ -23,14 +27,46 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0A0B0E] text-slate-100 flex flex-col">
       {/* Sticky Top Header */}
-      <Navbar onOpenAnalysisModal={() => handleOpenAnalysis("NVDA")} />
+      <Navbar
+        onOpenAnalysisModal={() => handleOpenAnalysis("NVDA")}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Desktop Sidebar */}
-        <Sidebar />
+        <div className="hidden md:flex">
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          />
+        </div>
+
+        {/* Mobile Slide-out Drawer */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="relative w-64 max-w-xs bg-[#0E1015] border-r border-white/10 p-4 flex flex-col justify-between z-10 animate-fade-in">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <span className="font-mono font-bold text-white text-xs">MENU</span>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1">
+                <Sidebar onCloseMobile={() => setIsMobileMenuOpen(false)} />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 md:pb-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
           <div className="max-w-7xl mx-auto space-y-8">
             <Outlet context={{ onOpenAnalysis: handleOpenAnalysis }} />
           </div>
@@ -102,6 +138,9 @@ export const AppLayout: React.FC = () => {
         onClose={() => setIsAnalysisModalOpen(false)}
         initialSymbol={selectedSymbolForAnalysis}
       />
+
+      {/* Floating AI Assistant Chat Panel */}
+      <AskSentinelChat onOpenAnalysis={handleOpenAnalysis} />
     </div>
   );
 };

@@ -8,8 +8,8 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 
 | Phase | Description | Status | Deliverables & Artifacts |
 | :--- | :--- | :--- | :--- |
-| **Phase 0** | **Architecture & Planning** | **IN PROGRESS** | System architecture, ER diagrams, docs, plans, project scaffold |
-| **Phase 1** | **Frontend (Mock Data)** | PENDING | React 19 + Tailwind + Vite dark terminal dashboard with 9 pages |
+| **Phase 0** | **Architecture & Planning** | **COMPLETED** | System architecture, ER diagrams, docs, plans, project scaffold |
+| **Phase 1** | **Frontend (Mock Data)** | **COMPLETED** | React 18 + Tailwind + Vite dark terminal dashboard with 9 pages |
 | **Phase 2** | **Backend (Mock Services)** | PENDING | Express + TypeScript + Zod REST API endpoints & error handlers |
 | **Phase 3** | **Database (Supabase)** | PENDING | PostgreSQL schema migration, repository layer, audit tables |
 | **Phase 4** | **Alpaca Paper Trading** | PENDING | Dedicated Alpaca service with strict paper guardrails |

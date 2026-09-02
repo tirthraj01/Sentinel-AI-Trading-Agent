@@ -2,6 +2,14 @@ export type DecisionType = "BUY" | "SELL" | "HOLD";
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type OrderStatus = "submitted" | "filled" | "blocked" | "canceled" | "rejected";
 
+export type TimeframeKey = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
+
+export interface ChartPoint {
+  time: string;
+  value: number;
+  benchmark?: number;
+}
+
 export interface PortfolioSummary {
   equity: number;
   cash: number;
@@ -10,7 +18,8 @@ export interface PortfolioSummary {
   dailyPLPercent: number;
   totalPL: number;
   totalPLPercent: number;
-  portfolioHistory: { time: string; value: number }[];
+  portfolioHistory: { time: string; value: number; benchmark?: number }[];
+  timeframeData?: Record<TimeframeKey, ChartPoint[]>;
 }
 
 export interface Position {
@@ -24,6 +33,11 @@ export interface Position {
   unrealizedPLPercent: number;
   allocationPercent: number;
   side: "long" | "short";
+  riskCategory?: "safe" | "watch" | "near_limit";
+  high52w?: number;
+  low52w?: number;
+  dailyChange?: number;
+  dailyChangePercent?: number;
 }
 
 export interface StockQuote {
@@ -121,4 +135,24 @@ export interface RiskRuleConfig {
   currentValue: number;
   unit: string;
   isViolation: boolean;
+}
+
+export interface AllocationItem {
+  symbol: string;
+  name: string;
+  value: number;
+  percentage: number;
+  color: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  sender: "user" | "sentinel";
+  text: string;
+  timestamp: string;
+  suggestedAction?: {
+    type: "analyze" | "navigate" | "filter";
+    target: string;
+    label: string;
+  };
 }

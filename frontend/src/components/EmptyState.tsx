@@ -1,5 +1,6 @@
 import React from "react";
-import { Inbox, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { SentinelMascot } from "./SentinelMascot";
 
 interface EmptyStateProps {
   title: string;
@@ -18,8 +19,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div className="glass-panel rounded-3xl p-10 flex flex-col items-center justify-center text-center border border-white/10">
-      <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 mb-4">
-        {icon || <Inbox className="h-6 w-6" />}
+      <div className="mb-4">
+        {icon || <SentinelMascot size="lg" state="idle" />}
       </div>
 
       <h3 className="text-base font-bold text-white mb-1">{title}</h3>

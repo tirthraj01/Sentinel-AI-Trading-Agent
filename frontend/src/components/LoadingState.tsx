@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { SentinelMascot } from "./SentinelMascot";
 
 interface LoadingStateProps {
   message?: string;
@@ -12,14 +12,8 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 }) => {
   return (
     <div className="glass-panel rounded-3xl p-12 flex flex-col items-center justify-center text-center border border-white/10">
-      <div className="relative mb-5">
-        <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-          <Sparkles className="h-8 w-8 animate-pulse text-indigo-400" />
-        </div>
-        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-        </span>
+      <div className="relative mb-5 flex justify-center">
+        <SentinelMascot size="lg" state="analyzing" />
       </div>
 
       <h3 className="text-base font-bold text-white mb-1 tracking-tight">
