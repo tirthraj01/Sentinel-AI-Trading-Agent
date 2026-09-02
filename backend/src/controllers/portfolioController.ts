@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { store } from "../services/mockDataStore.js";
-import { mockAlpacaService } from "../services/mockAlpacaService.js";
+import { alpacaService } from "../services/alpacaService.js";
 
-export const getPortfolio = (_req: Request, res: Response): void => {
-  const account = mockAlpacaService.getAccount();
+export const getPortfolio = async (_req: Request, res: Response): Promise<void> => {
+  const account = await alpacaService.getAccount();
 
   res.status(200).json({
     success: true,
@@ -17,8 +17,8 @@ export const getPortfolio = (_req: Request, res: Response): void => {
   });
 };
 
-export const getPositions = (_req: Request, res: Response): void => {
-  const positions = mockAlpacaService.getPositions();
+export const getPositions = async (_req: Request, res: Response): Promise<void> => {
+  const positions = await alpacaService.getPositions();
 
   res.status(200).json({
     success: true,

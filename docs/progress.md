@@ -1,6 +1,6 @@
-# SENTINEL — Hackathon Progress Tracker
+# SENTINEL — Progress Tracker
 
-This document tracks the incremental progress across all 18 phases of SENTINEL.
+This document tracks the incremental progress across all phases of SENTINEL.
 
 ---
 
@@ -12,7 +12,7 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 | **Phase 1** | **Frontend (Mock Data)** | **COMPLETED** | React 18 + Tailwind + Vite dark terminal dashboard with 9 pages, mascot, asset charts |
 | **Phase 2** | **Backend (Mock Services)** | **COMPLETED** | Express + TypeScript + Zod REST API endpoints, mock services, test suite |
 | **Phase 3** | **Database (Supabase)** | **COMPLETED** | PostgreSQL schema migration, repository layer, fallback mode, test suite |
-| **Phase 4** | **Alpaca Paper Trading** | PENDING | Dedicated Alpaca service with strict paper guardrails |
+| **Phase 4** | **Alpaca Paper Trading** | **COMPLETED** | Dedicated Alpaca service with strict paper guardrails, orders, account, positions |
 | **Phase 5** | **LLM Service** | PENDING | Configurable LLM integration with Zod structured output & reasoning |
 | **Phase 6** | **AI Trading Agent** | PENDING | Multi-step agent workflow (Observe -> Reason -> Propose -> Audit) |
 | **Phase 7** | **Alpaca MCP Integration**| PENDING | Model Context Protocol tool discovery & market data screening |
@@ -23,7 +23,7 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 | **Phase 12**| **Testing & Verification** | PENDING | Unit, integration & E2E tests (Approved vs Blocked scenarios) |
 | **Phase 13**| **Security Audit** | PENDING | Secret scanning, paper-trading assertions, CORS, input sanitization |
 | **Phase 14**| **UI Polish & UX Refinement**| PENDING | Uniswap-inspired polish, micro-animations, mobile responsiveness |
-| **Phase 15**| **Hackathon Demo Mode** | PENDING | Interactive demo scenarios with preset approved/blocked flows |
+| **Phase 15**| **Demo Mode** | PENDING | Interactive scenarios with preset approved/blocked flows |
 | **Phase 16**| **Documentation** | PENDING | Complete README, architecture diagrams, beginner guides |
 | **Phase 17**| **Final Review & Submission**| PENDING | 60-second pitch, judging criteria audit, final polish |
 
@@ -35,3 +35,4 @@ This document tracks the incremental progress across all 18 phases of SENTINEL.
 * **Phase 1 (Frontend)**: Completed. Complete 9-page AI fintech trading terminal with original SentinelMascot, Recharts charts, and AskSentinelChat.
 * **Phase 2 (Backend)**: Completed. Express + TypeScript REST API running on `http://localhost:5000` with 16 automated integration tests passing.
 * **Phase 3 (Database / Supabase)**: Completed. 9 PostgreSQL tables defined, Supabase client with graceful in-memory fallback, repository layer, seed scripts, and 25 passing automated tests.
+* **Phase 4 (Alpaca Paper Trading)**: Completed. Dedicated Alpaca service with strict paper trading invariants, account, positions, paper orders, rate limit monitoring, and 34 passing automated tests.

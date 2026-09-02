@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { store } from "../services/mockDataStore.js";
-import { mockAlpacaService } from "../services/mockAlpacaService.js";
+import { alpacaService } from "../services/alpacaService.js";
 import { CreateTradeRequestInput } from "../schemas/index.js";
 
 export const getTrades = (req: Request, res: Response): void => {
@@ -33,10 +33,10 @@ export const getTrades = (req: Request, res: Response): void => {
   });
 };
 
-export const createTrade = (req: Request, res: Response): void => {
+export const createTrade = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as CreateTradeRequestInput;
 
-  const order = mockAlpacaService.submitPaperOrder({
+  const order = await alpacaService.submitPaperOrder({
     symbol: body.symbol,
     side: body.side,
     shares: body.shares,

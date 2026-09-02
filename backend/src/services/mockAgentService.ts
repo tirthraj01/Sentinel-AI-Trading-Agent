@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { store } from "./mockDataStore.js";
 import { mockMarketService } from "./mockMarketService.js";
 import { mockRiskService } from "./mockRiskService.js";
-import { mockAlpacaService } from "./mockAlpacaService.js";
+import { alpacaService } from "./alpacaService.js";
 import { AgentDecision, AgentActivityEvent, DecisionType } from "../types/index.js";
 
 export class MockAgentService {
@@ -110,7 +110,7 @@ export class MockAgentService {
       "ANALYSIS_ONLY";
 
     if (decisionType === "BUY" && riskResult.approved) {
-      const order = mockAlpacaService.submitPaperOrder({
+      const order = await alpacaService.submitPaperOrder({
         symbol: sym,
         side: "BUY",
         shares: suggestedShares,

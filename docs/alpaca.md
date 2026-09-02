@@ -1,47 +1,84 @@
-# SENTINEL — Alpaca Paper Trading Integration
+# SENTINEL — Alpaca Paper Trading Integration (Phase 4)
 
 ---
 
 ## 1. Safety Architecture: Paper Trading Exclusivity
 
-SENTINEL is architected with non-negotiable safety guardrails against live-money execution.
+SENTINEL is architected with strict, non-negotiable safety guardrails preventing any live-money execution.
 
-### Safety Invariants:
-1. **Base URL Enforcement:**  
-   The API client URL defaults to `https://paper-api.alpaca.markets` and `https://data.alpaca.markets`.
-2. **Environment Variable Assertion:**  
-   If `process.env.ALPACA_PAPER_TRADE !== "true"`, the backend crashes on startup before serving any traffic.
-3. **Frontend Isolation:**  
-   The React frontend never communicates with Alpaca directly. All Alpaca operations are mediated by the backend server, preventing any client-side credential leaks.
+### Hardcoded Safety Invariants:
+1. **Paper Trading Flag Check:**  
+   If `process.env.ALPACA_PAPER_TRADE === "false"`, the service immediately throws:
+   `CRITICAL SAFETY GUARDRAIL: Live trading disabled! SENTINEL is strictly locked to Alpaca Paper Trading.`
+2. **Base URL Guard:**  
+   Base URL must strictly target `https://paper-api.alpaca.markets`. If configured with `https://api.alpaca.markets` (live broker endpoint), initialization throws a critical safety exception.
+3. **Client-Side Isolation:**  
+   The frontend never communicates with Alpaca directly. All operations are mediated by backend services, keeping API secrets protected.
 
 ---
 
-## 2. Implemented Capabilities
+## 2. Implemented Alpaca Paper Endpoints
 
-SENTINEL integrates the following Alpaca v2 endpoints:
+Located in [`backend/src/services/alpacaService.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/services/alpacaService.ts):
 
-### Account & Portfolio
-* `GET /v2/account`: Fetches account status, buying power, equity, cash, currency, and portfolio margin.
-* `GET /v2/positions`: Retrieves currently open stock positions, unrealized profit/loss, average entry prices, and market values.
+### Account & Balances
+* `GET /v2/account` (`alpacaService.getAccount()`):
+  - Fetches account status (`ACTIVE`), paper currency (`USD`), cash, portfolio value, buying power, and paper flag (`is_paper: true`).
+
+### Positions
+* `GET /v2/positions` (`alpacaService.getPositions()`):
+  - Returns open paper holdings with symbol, quantity, average entry price, market value, unrealized P/L, and portfolio weight.
+* `GET /v2/positions/{symbol}` (`alpacaService.getPosition(symbol)`):
+  - Retrieves single position metrics.
 
 ### Orders (Paper Trading Only)
-* `POST /v2/orders`: Places market or limit paper orders with fractional share support.
-* `GET /v2/orders`: Inspects open or filled orders with timestamps and execution statuses.
-* `DELETE /v2/orders/{order_id}`: Cancels an unfilled paper order.
-
-### Market Data
-* `GET /v2/stocks/{symbol}/quotes/latest`: Retrieves real-time ask/bid pricing.
-* `GET /v2/stocks/{symbol}/bars`: Fetches historical 1-minute and 1-day candlestick bars for technical analysis.
-* `GET /v2/stocks/snapshots`: Efficiently fetches quotes, day bars, and minute bars for multiple watchlist symbols simultaneously.
+* `POST /v2/orders` (`alpacaService.submitPaperOrder(...)`):
+  - Submits market or limit orders with `time_in_force: "day"`.
+  - Mapped to unique `alpacaOrderId`.
+  - Updates portfolio cash and position shares in real-time.
 
 ---
 
-## 3. Error Handling Matrix
+## 3. Credentials & Resilient Sandbox Mode
 
-| Error Scenario | Alpaca Status Code | SENTINEL System Reaction | User-Facing Message |
-| :--- | :--- | :--- | :--- |
-| **Market Closed** | 403 / 422 | Rejects immediate execution; flags option for pre-market or queued order. | *"Market is currently closed. Trade cannot be executed immediately."* |
-| **Insufficient Buying Power** | 403 | Caught early by Risk Engine; if triggered on Alpaca, logs event. | *"Insufficient paper buying power for order size."* |
-| **Invalid Symbol** | 404 / 400 | Rejects proposal during initial market data retrieval. | *"Ticker symbol not recognized on US exchanges."* |
-| **Rate Limiting** | 429 | Exponential backoff retry with jitter (up to 3 attempts). | *"Market data provider busy; retrying with backoff..."* |
-| **Network Failure** | ETIMEDOUT / 500 | Fails safely. No fake trade confirmation is ever rendered. | *"Unable to communicate with Alpaca Paper API. Trade was NOT executed."* |
+* Configured in `backend/.env`:
+  ```env
+  ALPACA_PAPER_TRADE=true
+  ALPACA_BASE_URL=https://paper-api.alpaca.markets
+  ALPACA_DATA_URL=https://data.alpaca.markets
+  ALPACA_API_KEY=your_alpaca_paper_api_key_here
+  ALPACA_API_SECRET=your_alpaca_paper_api_secret_here
+  ```
+* **Resilient Graceful Fallback:**  
+  When API keys are not yet configured or placeholder strings are present, `alpacaService` transparently executes within the high-fidelity local paper sandbox. Real Alpaca keys can be added at any time to connect directly to the live paper trading endpoint.
+
+---
+
+## 4. Rate Limit Tracking
+
+* Tracks Alpaca response headers:
+  - `x-ratelimit-remaining`
+  - `x-ratelimit-reset`
+* Method `alpacaService.getRateLimitStatus()` exposes live quota metrics to prevent HTTP 429 penalties.
+
+---
+
+## 5. Automated Test Verification
+
+Automated test suite in [`backend/src/__tests__/alpaca.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/alpaca.test.ts) verifies:
+* Live trading rejection when `ALPACA_PAPER_TRADE=false`.
+* Live endpoint rejection when base URL points to `api.alpaca.markets`.
+* Fetching account with `is_paper=true`.
+* Fetching positions list and individual ticker details.
+* Paper order submission for 1 share of SPY and 2 shares of AAPL.
+* Accurate position updates upon paper order execution.
+* Rate limit monitoring.
+
+**Test Results:**
+```text
+ ✓ src/__tests__/alpaca.test.ts (9 tests) 11ms
+ ✓ src/__tests__/database.test.ts (9 tests) 6ms
+ ✓ src/__tests__/api.test.ts (16 tests) 108ms
+ Test Files  3 passed (3)
+      Tests  34 passed (34)
+```

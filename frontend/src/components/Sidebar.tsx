@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Trades are executed in Alpaca paper sandbox. Live capital is strictly locked.
           </p>
           <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-            <span>Hackathon v1.0</span>
+            <span>Sentinel Core v1.0</span>
             <span className="flex items-center gap-1 text-emerald-400 font-semibold">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               Online
