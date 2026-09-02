@@ -1,118 +1,79 @@
-# SENTINEL — Deterministic Risk Engine Specification
+# SENTINEL — Deterministic Mathematical Risk Engine Specification (Phase 8)
 
 ---
 
 ## 1. Why a Deterministic Risk Engine?
 
-LLMs are probabilistic systems. Even state-of-the-art models can hallucinate, miscalculate percentages, or get swept into high-sentiment momentum during volatile market events.
+LLMs are probabilistic systems. Even advanced frontier models can hallucinate, miscalculate position weights, or get swept into high-sentiment momentum during volatile market disruptions.
 
-In institutional finance, risk management is separated from alpha generation (traders). The **Risk Engine** acts as the Chief Risk Officer (CRO):
-* It has veto power over any AI proposal.
-* Its logic is 100% deterministic (mathematical formulas with zero LLM involvement).
-* The AI **cannot** override, disable, or alter its rules.
+In institutional finance, risk management is strictly separated from alpha generation (traders). The **SENTINEL Risk Engine** acts as an automated Chief Risk Officer (CRO):
+* **Zero LLM in the risk loop:** 100% deterministic mathematical formulas.
+* **Absolute Veto Power:** If even a single rule fails, execution is immediately halted. The AI cannot negotiate, modify, or override risk decisions.
+* **Explainable Verdicts:** Emits exact numerical thresholds, actual values, and human-readable failure explanations.
 
 ---
 
-## 2. Hardcoded & Configurable Safety Rules
+## 2. The 6 Deterministic Safety Rules
 
-| Rule Name | Default Limit | Purpose | Mathematical Condition |
+Located in [`backend/src/services/riskEngine.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/services/riskEngine.ts):
+
+| Rule Name | Limit | Mathematical Formula | Failure Reaction |
 | :--- | :--- | :--- | :--- |
-| `maximum_position_exposure` | `10.0%` | Prevents over-concentration in a single asset | `(current_value + trade_value) / portfolio_equity <= 0.10` |
-| `maximum_single_trade_allocation` | `5.0%` | Restricts size of individual orders | `trade_value / portfolio_equity <= 0.05` |
-| `maximum_daily_loss` | `2.0%` | Circuit breaker: halts trading if daily drawdown hit | `abs(today_loss) / starting_equity <= 0.02` |
-| `maximum_trades_per_day` | `10 trades` | Prevents algorithmic churn and excessive fees | `trades_today_count < 10` |
-| `minimum_ai_confidence` | `70.0%` | Rejects low-conviction or speculative AI guesses | `proposal.confidence >= 70` |
-| `sufficient_cash` | `100% covered` | Ensures order value does not exceed settled cash | `trade_value <= available_cash` |
-| `position_ownership_for_sell` | `Strict` | Prohibits naked shorting | If action is `SELL`, owned `quantity >= order_quantity` |
+| **1. Max Position Size** | `10.0%` | $\frac{\text{existingValue} + \text{proposedCost}}{\text{totalEquity}} \times 100 \le 10.0\%$ | Rejects proposal to prevent single-asset over-concentration. |
+| **2. Max Single Trade Size** | `5.0%` | $\frac{\text{proposedCost}}{\text{totalEquity}} \times 100 \le 5.0\%$ | Caps trade allocation to control liquidity and sizing risk. |
+| **3. Daily Loss Circuit Breaker** | `2.0%` | $\text{drawdownTodayPercent} < 2.0\%$ | Freezes all BUY orders immediately across the entire portfolio. |
+| **4. Minimum AI Confidence** | `70.0%` | $\text{confidenceScore} \ge 70.0\%$ | Rejects low-conviction or speculative AI proposals. |
+| **5. Max Daily Executions** | `10 trades` | $\text{filledTradesToday} < 10$ | Halts trading to prevent algorithmic churn and runaway fees. |
+| **6. Max Sector Exposure** | `40.0%` | $\frac{\text{sectorValue} + \text{proposedCost}}{\text{totalEquity}} \times 100 \le 40.0\%$ | Prevents clustered systemic sector exposure (e.g. Tech/Semis). |
 
 ---
 
-## 3. Evaluation Payload & Output
+## 3. Emergency Overrides & Circuit Breakers
 
-### Input Proposal:
-```typescript
-interface TradeProposal {
-  symbol: string;
-  action: "BUY" | "SELL" | "HOLD";
-  quantity: number;
-  estimatedPrice: number;
-  confidence: number;
-}
-```
-
-### Risk Result Output (Approved Example):
-```json
-{
-  "approved": true,
-  "riskLevel": "LOW",
-  "reasons": [],
-  "checks": [
-    {
-      "name": "maximum_position_exposure",
-      "threshold": 10.0,
-      "actual": 4.8,
-      "passed": true
-    },
-    {
-      "name": "maximum_single_trade_allocation",
-      "threshold": 5.0,
-      "actual": 3.2,
-      "passed": true
-    },
-    {
-      "name": "minimum_confidence",
-      "threshold": 70.0,
-      "actual": 82.0,
-      "passed": true
-    },
-    {
-      "name": "maximum_daily_loss",
-      "threshold": 2.0,
-      "actual": 0.4,
-      "passed": true
-    },
-    {
-      "name": "sufficient_cash",
-      "threshold": 15000.0,
-      "actual": 3200.0,
-      "passed": true
-    }
-  ]
-}
-```
-
-### Risk Result Output (Blocked Example):
-```json
-{
-  "approved": false,
-  "riskLevel": "HIGH",
-  "reasons": [
-    "Maximum position exposure exceeded: Proposed trade would result in 13.5% portfolio allocation (limit is 10.0%).",
-    "Minimum confidence threshold not met: AI confidence is 62.0% (required >= 70.0%)."
-  ],
-  "checks": [
-    {
-      "name": "maximum_position_exposure",
-      "threshold": 10.0,
-      "actual": 13.5,
-      "passed": false
-    },
-    {
-      "name": "minimum_confidence",
-      "threshold": 70.0,
-      "actual": 62.0,
-      "passed": false
-    }
-  ]
-}
-```
+* **Emergency Kill Switch:**
+  - Can be toggled on/off instantly via `POST /api/risk/kill-switch`.
+  - When active, all paper order submissions and trade evaluations are strictly blocked with `riskLevel: "CRITICAL"`.
+* **Automatic Circuit Breaker:**
+  - Auto-triggers if portfolio daily loss hits or exceeds 2.0%.
+  - Freezes all BUY orders until the next market session.
 
 ---
 
-## 4. Enforcement Guarantee
+## 4. REST API Endpoints
 
-When a trade is **BLOCKED**:
-1. No HTTP call is ever made to the Alpaca order endpoint.
-2. A `risk_events` row is written to the database capturing the violation.
-3. The UI explicitly alerts the user:
-   > *"Trade blocked by Sentinel Risk Engine: Maximum position exposure exceeded."*
+1. **`GET /api/risk/status`**:
+   - Returns active rules, current utilization, recent vetoes, and `killSwitchActive` boolean.
+2. **`POST /api/risk/evaluate`**:
+   - Body: `{ symbol, decision, confidence, shares, price, customEquity? }`
+   - Evaluates any proposed trade against the mathematical engine without executing it.
+3. **`POST /api/risk/kill-switch`**:
+   - Body: `{ active: boolean }`
+   - Engages or disengages the emergency freeze switch.
+
+---
+
+## 5. Automated Test Verification
+
+Automated test suite in [`backend/src/__tests__/risk.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/risk.test.ts) verifies:
+* Individual rule testing (Pass case vs. Fail case for all 6 rules).
+* Combined complex scenarios:
+  - Valid trade passes all checks $\to$ `APPROVED` with `LOW` risk.
+  - High-confidence (90%) but oversized trade (7%) $\to$ `REJECTED`.
+  - Right-sized (2%) but low-confidence (65%) $\to$ `REJECTED`.
+  - Trading after daily loss circuit breaker triggered $\to$ `REJECTED` with `CRITICAL` risk.
+  - Emergency kill switch active $\to$ `REJECTED` with `CRITICAL` risk.
+* REST API endpoints: `GET /api/risk/status`, `POST /api/risk/evaluate`, `POST /api/risk/kill-switch`.
+
+**Test Results:**
+```text
+ ✓ src/__tests__/alpaca.test.ts (9 tests) 15ms
+ ✓ src/__tests__/database.test.ts (9 tests) 12ms
+ ✓ src/__tests__/llm.test.ts (6 tests) 14ms
+ ✓ src/__tests__/agent.test.ts (5 tests) 16ms
+ ✓ src/__tests__/mcp.test.ts (11 tests) 78ms
+ ✓ src/__tests__/risk.test.ts (18 tests) 88ms
+ ✓ src/__tests__/api.test.ts (16 tests) 172ms
+ Test Files  7 passed (7)
+      Tests  74 passed (74)
+   Duration  1.65s
+```

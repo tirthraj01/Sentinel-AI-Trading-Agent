@@ -8,7 +8,11 @@ import {
   getAgentActivity,
   analyzeSymbol,
 } from "../controllers/agentController.js";
-import { getRiskStatus } from "../controllers/riskController.js";
+import {
+  getRiskStatus,
+  evaluateRiskProposal,
+  toggleKillSwitch,
+} from "../controllers/riskController.js";
 import { getMcpTools, callMcpTool } from "../controllers/mcpController.js";
 import { validateBody } from "../middleware/validate.js";
 import { AnalyzeRequestSchema, CreateTradeRequestSchema } from "../schemas/index.js";
@@ -34,8 +38,10 @@ apiRouter.get("/agent/decisions", getAgentDecisions);
 apiRouter.get("/agent/activity", getAgentActivity);
 apiRouter.post("/agent/analyze", validateBody(AnalyzeRequestSchema), analyzeSymbol);
 
-// Risk Engine
+// Deterministic Risk Engine
 apiRouter.get("/risk/status", getRiskStatus);
+apiRouter.post("/risk/evaluate", evaluateRiskProposal);
+apiRouter.post("/risk/kill-switch", toggleKillSwitch);
 
 // Model Context Protocol (MCP) Endpoints
 apiRouter.get("/mcp/tools", getMcpTools);
