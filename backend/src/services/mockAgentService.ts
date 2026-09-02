@@ -3,6 +3,7 @@ import { store } from "./mockDataStore.js";
 import { mockMarketService } from "./mockMarketService.js";
 import { mockRiskService } from "./mockRiskService.js";
 import { alpacaService } from "./alpacaService.js";
+import { llmService } from "./llmService.js";
 import { AgentDecision, AgentActivityEvent, DecisionType } from "../types/index.js";
 
 export class MockAgentService {
@@ -49,27 +50,38 @@ export class MockAgentService {
       status: "info",
     });
 
-    // 3. Stage: DECIDE
-    let decisionType: DecisionType = "BUY";
-    let confidence = 84.0;
-    let suggestedShares = 20;
-    let reasoning = `Technical momentum continuation supported by positive institutional volume. News sentiment is favorable at ${(news.score * 100).toFixed(0)}%.`;
+    // 3. Stage: DECIDE (LLM Structured Reasoning)
+    const existingPos = store.positions.find((p) => p.symbol === sym);
+    const llmOutput = await llmService.analyzeAsset({
+      symbol: sym,
+      name: stock.name,
+      currentPrice: stock.price,
+      dailyChange: stock.change,
+      dailyChangePercent: stock.changePercent,
+      volume: stock.volume,
+      high: stock.high,
+      low: stock.low,
+      sector: stock.sector,
+      newsHeadline: news.headline,
+      newsSentiment: news.score,
+      portfolioEquity: store.portfolio.equity,
+      availableCash: store.portfolio.cash,
+      existingPositionShares: existingPos?.shares,
+      existingPositionWeight: existingPos?.allocationPercent,
+    });
+
+    let decisionType: DecisionType = llmOutput.tradeRecommendation.action;
+    let confidence = llmOutput.tradeRecommendation.confidence;
+    let suggestedShares = llmOutput.tradeRecommendation.suggestedShares;
+    let reasoning = llmOutput.tradeRecommendation.reasoning;
 
     if (forceScenario === "BLOCKED" || (forceScenario === "AUTO" && sym === "TSLA")) {
-      decisionType = "BUY";
-      confidence = 68.0; // Under 70% threshold
-      suggestedShares = 35; // Excess allocation
-      reasoning = `Rebound attempt near support zone. High options volatility creates downside skew, resulting in low algorithmic confidence (${confidence}%).`;
-    } else if (sym === "AAPL") {
-      decisionType = "HOLD";
-      confidence = 75.0;
-      suggestedShares = 0;
-      reasoning = `Position already at 8.72% portfolio concentration, approaching the 10.0% ceiling. Sentinel recommends HOLD to prevent over-allocation.`;
+      confidence = 68.0;
+      suggestedShares = 35;
+      reasoning = llmOutput.tradeRecommendation.reasoning;
     } else if (forceScenario === "APPROVED" || sym === "NVDA") {
-      decisionType = "BUY";
       confidence = 86.0;
       suggestedShares = 15;
-      reasoning = `Bullish breakout continuation confirmed by institutional accumulation and strong generative AI compute demand.`;
     }
 
     const proposedTradeCost = suggestedShares * stock.price;
@@ -155,12 +167,9 @@ export class MockAgentService {
       suggestedShares,
       riskAssessment: riskResult.riskLevel as "LOW" | "MEDIUM" | "HIGH",
       marketSummary: {
-        trend: stock.change >= 0 ? "BULLISH" : "BEARISH",
+        trend: llmOutput.marketTrend,
         volumeAnalysis: `${stock.volume} volume with institutional presence`,
-        keyLevels: {
-          support: parseFloat((stock.price * 0.96).toFixed(2)),
-          resistance: parseFloat((stock.price * 1.05).toFixed(2)),
-        },
+        keyLevels: llmOutput.keyLevels,
       },
       newsSentiment: news,
       riskResult,

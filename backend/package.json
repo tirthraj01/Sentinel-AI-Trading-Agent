@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@supabase/supabase-js": "^2.114.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

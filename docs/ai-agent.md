@@ -1,111 +1,77 @@
-# SENTINEL — AI Trading Agent Specification
+# SENTINEL — AI Trading Agent & LLM Service Specification (Phase 5)
 
 ---
 
 ## 1. Agent Design Philosophy
 
-The SENTINEL Agent does not behave like a reckless "black box" trader. Instead, it behaves like an institutional financial analyst preparing an investment memo for an investment committee.
-
-### Cardinal Agent Rules:
-1. **Explainability First:** The agent must always articulate the "why" behind any recommendation.
-2. **Calibrated Confidence:** Confidence must reflect data strength (0 to 100), penalizing conflicting signals or sparse volume.
-3. **Humility & No Guarantees:** The agent explicitly acknowledges market uncertainty and never guarantees profits.
-4. **Separation of Proposal & Execution:** The agent produces an intent (`TradeProposal`), which must pass the independent Risk Engine before any trade can occur.
+The SENTINEL Agent functions like an institutional quantitative analyst preparing an auditable investment memo for a risk committee:
+1. **Explainability First:** The agent must articulate the "why" behind every proposal using plain financial reasoning.
+2. **Calibrated Confidence:** Algorithmic conviction (0 to 100) must reflect telemetry quality and penalize conflicting indicators or high volatility.
+3. **Structured Outputs:** All responses are strictly enforced via Zod schemas, eliminating markdown hallucinations or malformed JSON.
+4. **Decoupled Execution:** The LLM only proposes trade hypotheses; the independent mathematical Risk Engine holds absolute veto authority.
 
 ---
 
-## 2. Decision Workflow Cycle
+## 2. LLM Service Architecture
 
-```
-[ TRIGGER: /api/agent/analyze?symbol=NVDA ]
-                    │
-                    ▼
-           1. OBSERVE & GATHER
-              ├── Fetch Real-Time Quotes & Historical Bars
-              ├── Fetch Latest News Headlines & Sentiment
-              └── Fetch Current Portfolio & Open Positions
-                    │
-                    ▼
-           2. STRUCTURED LLM REASONING
-              ├── Identify Trend & Momentum
-              ├── Gauge Sentiment Impact
-              ├── Evaluate Portfolio Fit (Diversification)
-              └── Synthesize Hypothesis
-                    │
-                    ▼
-           3. GENERATE STRUCTURED PROPOSAL (Zod Validated)
-              ├── Decision: BUY / SELL / HOLD
-              ├── Confidence: 0 - 100
-              ├── Suggested Allocation %
-              └── Step-by-Step Rationale
-                    │
-                    ▼
-           4. RISK ENGINE VALIDATION (Deterministic)
-              ├── Checks Limits (Position %, Daily Loss %, Cash, etc.)
-              └── Emits: APPROVED or BLOCKED
-                    │
-           ┌────────┴────────┐
-           ▼                 ▼
-      [ APPROVED ]      [ BLOCKED ]
-           │                 │
-           ▼                 ▼
-   5A. Submit Paper   5B. Record Risk Event
-       Order to Alpaca    (No Order Submitted)
-           │                 │
-           └────────┬────────┘
-                    ▼
-           6. RECORD & AUDIT
-              └── Persist Full Decision Trace to Database
-                    │
-                    ▼
-           7. RETURN REPORT TO USER
-```
+Located in [`backend/src/services/llmService.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/services/llmService.ts):
+
+* **Multi-Provider Support:**
+  - **Google Gemini (Recommended):** Integrated via `@google/genai` (default model `gemini-2.5-flash`).
+  - **OpenAI, Anthropic, Groq:** Configurable via `LLM_PROVIDER` in `backend/.env`.
+  - **High-Fidelity Deterministic Mock Engine:** Operates automatically when API keys are absent or invalid, ensuring 100% reliable local test execution.
 
 ---
 
-## 3. Explicit Tool Definitions
+## 3. Structured Output Schema
 
-The Agent uses explicit tools to gather state:
-
-| Tool Function | Description | Input | Output |
-| :--- | :--- | :--- | :--- |
-| `getMarketData(symbol)` | Fetches recent price, 24h change, VWAP, high/low, volume | `{ symbol: string }` | `{ price: number, changePct: number, vwap: number, volume: number }` |
-| `getNews(symbol)` | Fetches last 5 headlines and analyzes sentiment score (-1 to +1) | `{ symbol: string }` | `{ headlines: string[], sentimentScore: number }` |
-| `getPortfolio()` | Retrieves current equity, cash, and total buying power | `{}` | `{ equity: number, cash: number, buyingPower: number }` |
-| `getPositions()` | Retrieves all currently held stocks and weight | `{}` | `Position[]` |
-| `getRecentTrades()` | Retrieves recent executed orders to prevent overtrading | `{}` | `Trade[]` |
-| `evaluateRisk(proposal)` | Submits trade proposal to deterministic Risk Engine | `TradeProposal` | `RiskEvaluationResult` |
-| `submitPaperOrder(order)`| Places order on Alpaca Paper Trading API (ONLY if risk approved) | `OrderPayload` | `AlpacaOrderResponse` |
-
----
-
-## 4. Structured Output Zod Schema
-
-The AI output is strictly validated against this Zod schema:
+Defined in [`backend/src/schemas/llmSchema.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/schemas/llmSchema.ts):
 
 ```typescript
-import { z } from "zod";
-
-export const AgentDecisionSchema = z.object({
-  symbol: z.string().toUpperCase(),
-  decision: z.enum(["BUY", "SELL", "HOLD"]),
-  confidence: z.number().min(0).max(100),
-  reasoning: z.string().min(20),
-  risk_assessment: z.enum(["LOW", "MEDIUM", "HIGH"]),
-  suggested_allocation_pct: z.number().min(0).max(10), // Max 10% single trade
-  market_summary: z.object({
-    trend: z.enum(["BULLISH", "BEARISH", "SIDEWAYS"]),
-    volume_analysis: z.string(),
-    key_levels: z.object({
-      support: z.number().optional(),
-      resistance: z.number().optional(),
-    }),
+export const LLMAnalysisOutputSchema = z.object({
+  marketTrend: z.enum(["BULLISH", "BEARISH", "SIDEWAYS"]),
+  keyLevels: z.object({
+    support: z.number().positive(),
+    resistance: z.number().positive(),
   }),
-  news_sentiment: z.object({
-    score: z.number().min(-1).max(1),
-    headline_highlight: z.string(),
+  catalystAnalysis: z.string().min(5),
+  newsSentimentScore: z.number().min(0).max(1),
+  tradeRecommendation: z.object({
+    action: z.enum(["BUY", "SELL", "HOLD"]),
+    confidence: z.number().min(0).max(100),
+    reasoning: z.string().min(10),
+    suggestedAllocationPct: z.number().min(0).max(100),
+    suggestedShares: z.number().int().min(0),
   }),
 });
+```
 
-export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
+---
+
+## 4. Prompts & Context Ingestion
+
+Defined in [`backend/src/agents/prompts.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/agents/prompts.ts):
+
+* **`SENTINEL_SYSTEM_PROMPT`:** Establishes risk-first mandate, capital preservation priority, and strict JSON requirements.
+* **`buildMarketAnalysisPrompt`:** Ingests asset price action, 24h volume, session high/low, sector, news sentiment, and portfolio allocation context.
+
+---
+
+## 5. Automated Test Verification
+
+Automated test suite in [`backend/src/__tests__/llm.test.ts`](file:///c:/Users/BusinessComputers.in/Pictures/New%20folder%20(2)/backend/src/__tests__/llm.test.ts) verifies:
+* Structured memo generation for `NVDA` (`BUY`, bullish breakout, support/resistance levels).
+* Risk-aware memo generation for `AAPL` (`HOLD`, respecting the 10.0% single-asset exposure ceiling).
+* Strict schema validation against `LLMAnalysisOutputSchema` for both assets.
+* Rejection of malformed schema payloads (invalid enums, out-of-bounds sentiment or confidence).
+* Confidence score format adherence (numeric, 0–100 range).
+
+**Test Results:**
+```text
+ ✓ src/__tests__/alpaca.test.ts (9 tests) 9ms
+ ✓ src/__tests__/database.test.ts (9 tests) 9ms
+ ✓ src/__tests__/llm.test.ts (6 tests) 10ms
+ ✓ src/__tests__/api.test.ts (16 tests) 104ms
+ Test Files  4 passed (4)
+      Tests  40 passed (40)
 ```
