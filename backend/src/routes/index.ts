@@ -7,6 +7,7 @@ import {
   getAgentDecisions,
   getAgentActivity,
   analyzeSymbol,
+  askSentinel,
 } from "../controllers/agentController.js";
 import {
   getRiskStatus,
@@ -57,6 +58,7 @@ apiRouter.post(
   validateBody(AnalyzeRequestSchema),
   analyzeSymbol
 );
+apiRouter.post("/agent/chat", agentAnalysisLimiter, askSentinel);
 
 // Deterministic Risk Engine
 apiRouter.get("/risk/status", getRiskStatus);
