@@ -19,13 +19,13 @@ export const getRiskStatus = (_req: Request, res: Response): void => {
 };
 
 export const evaluateRiskProposal = (req: Request, res: Response): void => {
-  const { symbol, decision, confidence, shares, price, customEquity } = req.body;
+  const { symbol, decision, confidence, shares, price, customEquity, customDailyLossPercent } = req.body;
 
   if (!symbol || !shares || !price) {
     res.status(400).json({
       success: false,
       error: "Bad Request",
-      message: "Missing required fields: symbol, shares, price",
+      message: "Fields 'symbol', 'shares', and 'price' are mandatory.",
     });
     return;
   }
@@ -37,6 +37,7 @@ export const evaluateRiskProposal = (req: Request, res: Response): void => {
     shares: Number(shares),
     price: Number(price),
     customEquity: customEquity ? Number(customEquity) : undefined,
+    customDailyLossPercent: customDailyLossPercent !== undefined ? Number(customDailyLossPercent) : undefined,
   });
 
   res.status(200).json({
