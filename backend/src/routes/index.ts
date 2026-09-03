@@ -17,6 +17,11 @@ import { getMcpTools, callMcpTool } from "../controllers/mcpController.js";
 import { validateBody } from "../middleware/validate.js";
 import { AnalyzeRequestSchema, CreateTradeRequestSchema } from "../schemas/index.js";
 import { eventBus } from "../services/eventBus.js";
+import {
+  sanitizeTickerInput,
+  validateTradingNumbers,
+  agentAnalysisLimiter,
+} from "../middleware/security.js";
 
 export const apiRouter = Router();
 
@@ -24,27 +29,42 @@ export const apiRouter = Router();
 apiRouter.get("/health", getHealth);
 
 // Market data & quotes
-apiRouter.get("/market", getMarketData);
+apiRouter.get("/market", sanitizeTickerInput, getMarketData);
 
 // Portfolio & positions
 apiRouter.get("/portfolio", getPortfolio);
 apiRouter.get("/positions", getPositions);
 
 // Trades
-apiRouter.get("/trades", getTrades);
-apiRouter.post("/trades", validateBody(CreateTradeRequestSchema), createTrade);
+apiRouter.get("/trades", sanitizeTickerInput, getTrades);
+apiRouter.post(
+  "/trades",
+  validateBody(CreateTradeRequestSchema),
+  createTrade
+);
 
 // AI Agent
-apiRouter.get("/agent/decisions", getAgentDecisions);
+apiRouter.get("/agent/decisions", sanitizeTickerInput, getAgentDecisions);
 apiRouter.get("/agent/activity", getAgentActivity);
 apiRouter.get("/agent/stream", (_req, res) => {
   eventBus.registerClient(res);
 });
-apiRouter.post("/agent/analyze", validateBody(AnalyzeRequestSchema), analyzeSymbol);
+apiRouter.post(
+  "/agent/analyze",
+  agentAnalysisLimiter,
+  sanitizeTickerInput,
+  validateBody(AnalyzeRequestSchema),
+  analyzeSymbol
+);
 
 // Deterministic Risk Engine
 apiRouter.get("/risk/status", getRiskStatus);
-apiRouter.post("/risk/evaluate", evaluateRiskProposal);
+apiRouter.post(
+  "/risk/evaluate",
+  sanitizeTickerInput,
+  validateTradingNumbers,
+  evaluateRiskProposal
+);
 apiRouter.post("/risk/kill-switch", toggleKillSwitch);
 
 // Model Context Protocol (MCP) Endpoints
