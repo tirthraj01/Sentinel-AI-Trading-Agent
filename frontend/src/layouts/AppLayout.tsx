@@ -1,9 +1,11 @@
-import React, { useState } from "react";
-import { Outlet, NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 import { Sidebar } from "../components/Sidebar";
 import { AnalysisModal } from "../components/AnalysisModal";
 import { AskSentinelChat } from "../components/AskSentinelChat";
+import { BackendHealthBanner } from "../components/BackendHealthBanner";
+import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -14,18 +16,92 @@ import {
 } from "lucide-react";
 
 export const AppLayout: React.FC = () => {
+  const navigate = useNavigate();
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [selectedSymbolForAnalysis, setSelectedSymbolForAnalysis] = useState("NVDA");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
 
   const handleOpenAnalysis = (symbol: string = "NVDA") => {
     setSelectedSymbolForAnalysis(symbol);
     setIsAnalysisModalOpen(true);
   };
 
+  // Global Keyboard Shortcuts (1-8, /, Escape, ?)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        if (e.key === "Escape") {
+          target.blur();
+        }
+        return;
+      }
+
+      if (e.key === "Escape") {
+        setIsAnalysisModalOpen(false);
+        setIsMobileMenuOpen(false);
+        setIsShortcutsModalOpen(false);
+        return;
+      }
+
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        setIsShortcutsModalOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === "/") {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
+        return;
+      }
+
+      switch (e.key) {
+        case "1":
+          navigate("/");
+          break;
+        case "2":
+          navigate("/markets");
+          break;
+        case "3":
+          navigate("/portfolio");
+          break;
+        case "4":
+          navigate("/positions");
+          break;
+        case "5":
+          navigate("/agent");
+          break;
+        case "6":
+          navigate("/activity");
+          break;
+        case "7":
+          navigate("/risk");
+          break;
+        case "8":
+          navigate("/trades");
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate]);
+
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 flex flex-col relative selection:bg-indigo-500/30 selection:text-indigo-200">
+      {/* Offline Alert Banner */}
+      <BackendHealthBanner />
+
       {/* Sticky Top Header */}
       <Navbar
         onOpenAnalysisModal={() => handleOpenAnalysis("NVDA")}
@@ -50,10 +126,11 @@ export const AppLayout: React.FC = () => {
             />
             <div className="relative w-64 max-w-xs bg-[#0E1015] border-r border-white/10 p-4 flex flex-col justify-between z-10 animate-fade-in">
               <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-                <span className="font-mono font-bold text-white text-xs">MENU</span>
+                <span className="font-mono font-bold text-white text-xs">NAVIGATION</span>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  aria-label="Close menu"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -137,6 +214,12 @@ export const AppLayout: React.FC = () => {
         isOpen={isAnalysisModalOpen}
         onClose={() => setIsAnalysisModalOpen(false)}
         initialSymbol={selectedSymbolForAnalysis}
+      />
+
+      {/* Keyboard Shortcuts Help Dialog */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
       />
 
       {/* Floating AI Assistant Chat Panel */}

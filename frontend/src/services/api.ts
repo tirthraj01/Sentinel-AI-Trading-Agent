@@ -50,6 +50,11 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // 0. Health Check
+  async getHealth(): Promise<{ status: string }> {
+    return request<{ status: string }>("/health");
+  },
+
   // 1. Portfolio & Balances
   async getPortfolio(): Promise<{ account: any; summary: PortfolioSummary }> {
     try {

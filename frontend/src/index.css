@@ -56,3 +56,48 @@
   border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
 }
+
+/* Shimmer Loading Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Focus Ring Accessibility Helper */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px #0A0B0E, 0 0 0 4px #6366F1;
+}
+
+/* Smooth Scale on Interactive Cards */
+.card-interactive {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.5);
+}
+
+.card-interactive:active {
+  transform: scale(0.99);
+}
