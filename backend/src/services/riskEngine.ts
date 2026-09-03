@@ -219,6 +219,10 @@ export class DeterministicRiskEngine {
   public getRules(): RiskRuleConfig[] {
     return store.riskRules;
   }
+
+  public resetState(): void {
+    this.killSwitchActive = false;
+  }
 }
 
 export const riskEngine = new DeterministicRiskEngine();

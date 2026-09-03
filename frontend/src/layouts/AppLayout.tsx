@@ -6,6 +6,8 @@ import { AnalysisModal } from "../components/AnalysisModal";
 import { AskSentinelChat } from "../components/AskSentinelChat";
 import { BackendHealthBanner } from "../components/BackendHealthBanner";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
+import { DemoModeBanner } from "../components/DemoModeBanner";
+import { GuidedTourModal } from "../components/GuidedTourModal";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -22,6 +24,7 @@ export const AppLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   const handleOpenAnalysis = (symbol: string = "NVDA") => {
     setSelectedSymbolForAnalysis(symbol);
@@ -106,6 +109,14 @@ export const AppLayout: React.FC = () => {
       <Navbar
         onOpenAnalysisModal={() => handleOpenAnalysis("NVDA")}
         onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+      />
+
+      {/* Interactive Demo Mode Scenario Tray (Phase 15) */}
+      <DemoModeBanner
+        onOpenTour={() => setIsTourOpen(true)}
+        onScenarioExecuted={(data) => {
+          if (data?.symbol) handleOpenAnalysis(data.symbol);
+        }}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -220,6 +231,15 @@ export const AppLayout: React.FC = () => {
       <KeyboardShortcutsModal
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
+      />
+
+      {/* Guided Tour Interactive Walkthrough Modal (Phase 15) */}
+      <GuidedTourModal
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onLaunchScenario={(scenario) => {
+          handleOpenAnalysis(scenario === "B" ? "TSLA" : "NVDA");
+        }}
       />
 
       {/* Floating AI Assistant Chat Panel */}

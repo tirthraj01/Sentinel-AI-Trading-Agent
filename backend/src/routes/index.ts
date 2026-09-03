@@ -14,6 +14,7 @@ import {
   toggleKillSwitch,
 } from "../controllers/riskController.js";
 import { getMcpTools, callMcpTool } from "../controllers/mcpController.js";
+import { resetDemoState, triggerDemoScenario } from "../controllers/demoController.js";
 import { validateBody } from "../middleware/validate.js";
 import { AnalyzeRequestSchema, CreateTradeRequestSchema } from "../schemas/index.js";
 import { eventBus } from "../services/eventBus.js";
@@ -70,3 +71,7 @@ apiRouter.post("/risk/kill-switch", toggleKillSwitch);
 // Model Context Protocol (MCP) Endpoints
 apiRouter.get("/mcp/tools", getMcpTools);
 apiRouter.post("/mcp/call", callMcpTool);
+
+// Interactive Demo Mode (Phase 15)
+apiRouter.post("/demo/reset", resetDemoState);
+apiRouter.post("/demo/trigger-scenario", triggerDemoScenario);

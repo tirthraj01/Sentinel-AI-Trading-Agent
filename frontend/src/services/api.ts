@@ -316,4 +316,18 @@ export const api = {
       return [];
     }
   },
+
+  // 10. Interactive Demo Mode (Phase 15)
+  async resetDemoState(): Promise<{ success: boolean; message: string }> {
+    return request<{ success: boolean; message: string }>("/demo/reset", {
+      method: "POST",
+    });
+  },
+
+  async triggerDemoScenario(scenario: "A" | "B" | "C" | "D"): Promise<any> {
+    return request<any>("/demo/trigger-scenario", {
+      method: "POST",
+      body: JSON.stringify({ scenario }),
+    });
+  },
 };

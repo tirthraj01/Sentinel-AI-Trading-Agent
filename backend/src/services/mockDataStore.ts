@@ -468,6 +468,26 @@ class MockDataStore {
       isViolation: false,
     },
   ];
+
+  public resetDemoState(): void {
+    this.portfolio = {
+      equity: 100000.0,
+      cash: 100000.0,
+      buyingPower: 200000.0,
+      dailyPL: 0.0,
+      dailyPLPercent: 0.0,
+      totalPL: 0.0,
+      totalPLPercent: 0.0,
+      portfolioHistory: [
+        { time: "09:30", value: 100000.0 },
+        { time: "16:00", value: 100000.0 },
+      ],
+    };
+    this.positions = [];
+    this.trades = [];
+    this.decisions = [];
+    this.activities = [];
+  }
 }
 
 export const store = new MockDataStore();
