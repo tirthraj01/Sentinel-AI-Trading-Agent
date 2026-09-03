@@ -1,17 +1,30 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, Search, ShieldCheck, Menu } from "lucide-react";
 import { SentinelMascot } from "./SentinelMascot";
 
 interface NavbarProps {
   onOpenAnalysisModal?: () => void;
+  onSearch?: (query: string) => void;
   onToggleMobileMenu?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenAnalysisModal,
+  onSearch,
   onToggleMobileMenu,
 }) => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const submitSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
+    onSearch?.(normalizedQuery);
+    navigate(`/markets?search=${encodeURIComponent(normalizedQuery)}`);
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#0A0B0E]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -47,17 +60,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Center / Fast Search & Actions */}
         <div className="hidden md:flex items-center gap-3 flex-1 max-w-md mx-8">
-          <div className="relative w-full group">
+          <form onSubmit={submitSearch} className="relative w-full group">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
             <input
               type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
               placeholder="Search ticker, company, or metric..."
               className="w-full bg-[#12141A]/90 border border-white/10 rounded-2xl py-1.5 pl-9 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
               ⌘K
             </span>
-          </div>
+          </form>
         </div>
 
         {/* Right Badges & Account Status */}

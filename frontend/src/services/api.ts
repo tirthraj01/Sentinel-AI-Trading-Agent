@@ -267,6 +267,13 @@ export const api = {
     };
   },
 
+  async askSentinel(message: string): Promise<{ answer: string; provider: string }> {
+    return request<{ answer: string; provider: string }>("/agent/chat", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    });
+  },
+
   // 8. Deterministic Risk Engine
   async getRiskStatus(): Promise<RiskStatus> {
     try {

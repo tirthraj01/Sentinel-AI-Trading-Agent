@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import { Search, Sparkles, BarChart3, ArrowUpDown, RefreshCw, AlertCircle } from "lucide-react";
 import { StockCard } from "../components/StockCard";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
@@ -11,8 +11,9 @@ export const MarketsPage: React.FC = () => {
   const { onOpenAnalysis } = useOutletContext<{
     onOpenAnalysis: (symbol: string) => void;
   }>();
+  const [searchParams] = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
   const [selectedSector, setSelectedSector] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("CHANGE_DESC");
 

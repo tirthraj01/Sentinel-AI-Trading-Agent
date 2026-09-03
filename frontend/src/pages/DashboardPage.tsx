@@ -6,6 +6,9 @@ import {
   Percent,
   Wallet,
   Sparkles,
+  Star,
+  BarChart3,
+  Activity,
 } from "lucide-react";
 import { MetricCard } from "../components/MetricCard";
 import { PortfolioChart } from "../components/PortfolioChart";
@@ -43,30 +46,44 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Welcome & System Status Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Trading Terminal
+      <div className="dashboard-hero glass-panel rounded-[28px] p-5 sm:p-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.22),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(14,165,233,0.18),_transparent_30%)]" />
+        <div className="relative flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="command-pill">LIVE PAPER SANDBOX</span>
+              <span className="command-pill command-pill-muted">AI SIGNALS ACTIVE</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-[-0.06em] text-white leading-none">
+              AI Command Deck
             </h1>
-            <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs px-2.5 py-0.5 font-mono font-semibold">
-              Live Paper Sandbox
-            </span>
+            <p className="mt-3 max-w-xl text-sm sm:text-base text-slate-300 leading-relaxed">
+              Institutional-grade surveillance, risk containment, and explainable execution intelligence built to defend capital and accelerate conviction.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time portfolio surveillance with AI market intelligence and deterministic risk guards
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => onOpenAnalysis("NVDA")}
-            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span>Launch Agent Cycle</span>
-          </button>
+          <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[260px]">
+            <div className="terminal-status-panel rounded-2xl p-3">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                <span>Market Regime</span>
+                <span className="text-emerald-300">Risk-On</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-2xl font-black text-white font-tabular">76%</span>
+                <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300">
+                  Bullish Bias
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onOpenAnalysis("NVDA")}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-[0_18px_35px_rgba(99,102,241,0.35)] hover:shadow-[0_18px_35px_rgba(99,102,241,0.5)] hover:from-indigo-600 hover:to-purple-700 active:scale-[0.98] transition-all"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Launch Agent Cycle</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -112,6 +129,30 @@ export const DashboardPage: React.FC = () => {
 
       {/* Main Chart Section */}
       <PortfolioChart portfolio={portfolio} />
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
+        <div className="glass-panel rounded-3xl p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Pinned Watchlist</p><h2 className="mt-1 text-lg font-bold text-white">Market breadth</h2></div>
+            <span className="text-[11px] text-slate-500">{positions.length} active symbols</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {positions.map((position) => (
+              <button key={position.symbol} onClick={() => onOpenAnalysis(position.symbol)} className="rounded-2xl border border-white/10 bg-black/20 p-3 text-left transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/5">
+                <div className="flex items-center justify-between"><span className="text-xs font-bold text-white">{position.symbol}</span><Star className="h-3 w-3 fill-amber-300 text-amber-300" /></div>
+                <div className="mt-3 font-mono text-sm text-slate-200">${position.currentPrice.toFixed(2)}</div>
+                <div className={`mt-1 text-[11px] font-semibold ${position.unrealizedPL >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{position.unrealizedPL >= 0 ? "+" : ""}{position.unrealizedPLPercent.toFixed(2)}%</div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="terminal-status-panel rounded-3xl p-4"><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-400"><BarChart3 className="h-3.5 w-3.5 text-cyan-300" />Exposure</div><p className="mt-3 font-mono text-2xl font-bold text-white">{positions.reduce((sum, position) => sum + position.allocationPercent, 0).toFixed(1)}%</p><p className="mt-1 text-[11px] text-slate-500">Across open positions</p></div>
+          <div className="terminal-status-panel rounded-3xl p-4"><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-400"><Activity className="h-3.5 w-3.5 text-emerald-300" />Drawdown</div><p className="mt-3 font-mono text-2xl font-bold text-emerald-300">0.0%</p><p className="mt-1 text-[11px] text-slate-500">Current session</p></div>
+          <div className="terminal-status-panel rounded-3xl p-4"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Benchmark</div><p className="mt-3 font-mono text-2xl font-bold text-white">+{portfolio.dailyPLPercent.toFixed(2)}%</p><p className="mt-1 text-[11px] text-slate-500">Portfolio daily return</p></div>
+          <div className="terminal-status-panel rounded-3xl p-4"><div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">AI confidence</div><p className="mt-3 font-mono text-2xl font-bold text-cyan-300">{latestDecision ? `${latestDecision.confidence}%` : "--"}</p><p className="mt-1 text-[11px] text-slate-500">Latest signal</p></div>
+        </div>
+      </section>
 
       {/* Market Pulse Row */}
       <MarketPulse

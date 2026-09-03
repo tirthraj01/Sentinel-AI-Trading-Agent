@@ -41,6 +41,23 @@ export class LLMService {
     return this.geminiClient !== null;
   }
 
+  public async answerQuestion(question: string, portfolioContext: string): Promise<string> {
+    if (this.geminiClient && (this.provider === "GEMINI" || this.provider === "MOCK")) {
+      try {
+        const response = await this.geminiClient.models.generateContent({
+          model: this.geminiModel,
+          contents: `${SENTINEL_SYSTEM_PROMPT}\n\nYou are answering a trader's direct question. Use only the supplied context, be concise, and say when the context does not contain enough information. Do not invent prices or executions.\n\nContext: ${portfolioContext}\n\nQuestion: ${question}`,
+        });
+        const answer = response.text?.trim();
+        if (answer) return answer;
+      } catch (err) {
+        console.warn("Live Gemini chat failed; using contextual fallback:", (err as Error).message);
+      }
+    }
+
+    return `I could not reach the live reasoning model, but I can still use the current Sentinel context. Your question was: "${question}". ${portfolioContext}`;
+  }
+
   /**
    * Generates structured market analysis & trade proposal
    */

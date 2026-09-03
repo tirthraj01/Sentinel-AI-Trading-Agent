@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <aside
-      className={`border-r border-white/10 bg-[#0A0B0E]/70 backdrop-blur-xl flex flex-col justify-between p-3.5 transition-all duration-300 relative select-none ${
+      className={`terminal-sidebar border-r border-cyan-500/10 flex flex-col justify-between p-3.5 transition-all duration-300 relative select-none ${
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       isCollapsed ? "justify-center px-2" : "justify-between px-3"
                     } py-2 rounded-2xl text-xs font-semibold transition-all ${
                       isActive
-                        ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm"
+                        ? "bg-cyan-500/12 text-cyan-200 border border-cyan-400/30 shadow-[0_0_20px_rgba(34,211,238,0.10)]"
                         : "text-slate-400 hover:text-white hover:bg-white/5"
                     }`
                   }
@@ -131,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       isCollapsed ? "justify-center px-2" : "justify-between px-3"
                     } py-2 rounded-2xl text-xs font-semibold transition-all ${
                       isActive
-                        ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm"
+                        ? "bg-cyan-500/12 text-cyan-200 border border-cyan-400/30 shadow-[0_0_20px_rgba(34,211,238,0.10)]"
                         : "text-slate-400 hover:text-white hover:bg-white/5"
                     }`
                   }

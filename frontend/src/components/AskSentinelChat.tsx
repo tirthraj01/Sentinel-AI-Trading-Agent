@@ -7,6 +7,7 @@ import {
   MOCK_POSITIONS,
   MOCK_TRADES,
 } from "../data/mockData";
+import { api } from "../services/api";
 
 interface AskSentinelChatProps {
   onOpenAnalysis?: (symbol: string) => void;
@@ -87,7 +88,7 @@ export const AskSentinelChat: React.FC<AskSentinelChatProps> = ({ onOpenAnalysis
     return `I evaluated your request against current market telemetry and portfolio state. You have **5 open positions** totaling $62,729.45 and **$42,120.80** in cash. All risk parameters are compliant. Would you like me to launch an automated agent scan for a specific ticker like NVDA or AAPL?`;
   };
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
     if (!query) return;
 
@@ -102,18 +103,26 @@ export const AskSentinelChat: React.FC<AskSentinelChatProps> = ({ onOpenAnalysis
     setInput("");
     setIsTyping(true);
 
-    // Simulate typing delay
-    setTimeout(() => {
-      const responseText = generateMockResponse(query);
+    try {
+      const response = await api.askSentinel(query);
       const aiMessage: AIChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "sentinel",
-        text: responseText,
+        text: response.answer,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch {
+      const aiMessage: AIChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "sentinel",
+        text: generateMockResponse(query),
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } finally {
       setIsTyping(false);
-    }, 700);
+    }
   };
 
   return (
@@ -228,7 +237,7 @@ export const AskSentinelChat: React.FC<AskSentinelChatProps> = ({ onOpenAnalysis
             {suggestedPrompts.slice(0, 3).map((prompt, i) => (
               <button
                 key={i}
-                onClick={() => handleSend(prompt)}
+                onClick={() => { void handleSend(prompt); }}
                 className="text-[10px] whitespace-nowrap bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 px-2.5 py-1 rounded-full transition-all"
               >
                 {prompt}

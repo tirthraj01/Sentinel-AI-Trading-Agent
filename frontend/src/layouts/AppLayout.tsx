@@ -8,6 +8,7 @@ import { BackendHealthBanner } from "../components/BackendHealthBanner";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { DemoModeBanner } from "../components/DemoModeBanner";
 import { GuidedTourModal } from "../components/GuidedTourModal";
+import { TerminalStatusBar } from "../components/TerminalStatusBar";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -101,15 +102,23 @@ export const AppLayout: React.FC = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#0A0B0E] text-slate-100 flex flex-col relative selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="app-shell min-h-screen text-slate-100 flex flex-col relative selection:bg-indigo-500/30 selection:text-indigo-200">
+      <div className="app-grid-overlay" />
+
       {/* Offline Alert Banner */}
       <BackendHealthBanner />
 
       {/* Sticky Top Header */}
       <Navbar
         onOpenAnalysisModal={() => handleOpenAnalysis("NVDA")}
+        onSearch={(query) => {
+          const symbol = query.toUpperCase().replace(/[^A-Z]/g, "");
+          if (symbol.length <= 6) handleOpenAnalysis(symbol);
+        }}
         onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
       />
+
+      <TerminalStatusBar />
 
       {/* Interactive Demo Mode Scenario Tray (Phase 15) */}
       <DemoModeBanner
