@@ -1,7 +1,16 @@
-import React from "react";
-import { Sparkles, ArrowUpRight, ShieldCheck, ShieldAlert, Newspaper, TrendingUp, Clock } from "lucide-react";
+import React, { useState } from "react";
+import {
+  Sparkles,
+  ArrowUpRight,
+  ShieldCheck,
+  ShieldAlert,
+  Newspaper,
+  Clock,
+  ChevronDown,
+} from "lucide-react";
 import { AgentDecision } from "../types";
 import { Badge } from "./Badge";
+import { DecisionWaterfall } from "./DecisionWaterfall";
 
 interface AIDecisionCardProps {
   decision: AgentDecision;
@@ -12,6 +21,7 @@ export const AIDecisionCard: React.FC<AIDecisionCardProps> = ({
   decision,
   onInspectDetails,
 }) => {
+  const [showWaterfall, setShowWaterfall] = useState(false);
   const isApproved = decision.status === "APPROVED_EXECUTED";
   const isBlocked = decision.status === "BLOCKED_BY_RISK";
 
@@ -61,72 +71,93 @@ export const AIDecisionCard: React.FC<AIDecisionCardProps> = ({
           </div>
         </div>
 
-        {/* Confidence Gauge */}
+        {/* Confidence Gauge Badge */}
         <div className="text-right">
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 block mb-1">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-semibold">
             AI Conviction
           </span>
-          <div className="flex items-center gap-2 justify-end">
-            <div className="w-20 bg-slate-800 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  decision.confidence >= 75
-                    ? "bg-emerald-400"
-                    : decision.confidence >= 65
-                    ? "bg-amber-400"
-                    : "bg-rose-400"
-                }`}
-                style={{ width: `${decision.confidence}%` }}
-              />
-            </div>
-            <span className="text-sm font-bold text-white font-tabular">
-              {decision.confidence}%
-            </span>
-          </div>
+          <span
+            className={`text-xl font-black tracking-tight font-tabular ${
+              decision.confidence >= 80
+                ? "text-emerald-400"
+                : decision.confidence >= 70
+                ? "text-indigo-400"
+                : "text-amber-400"
+            }`}
+          >
+            {decision.confidence}%
+          </span>
         </div>
       </div>
 
-      {/* Rationale Memo */}
-      <div className="rounded-2xl bg-[#0E1015] border border-white/5 p-4 mb-5">
-        <p className="text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-          <span>Investment Hypothesis</span>
+      {/* AI Reasoning Narrative Body */}
+      <div className="space-y-3 mb-5">
+        <p className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-black/30 p-4 rounded-2xl border border-white/5">
+          "{decision.reasoning}"
         </p>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          {decision.reasoning}
-        </p>
-      </div>
 
-      {/* Market Signals Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        {/* Technical Trend */}
-        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <TrendingUp className="h-3.5 w-3.5 text-indigo-400" />
-              <span>Technical Trend</span>
+        {/* Metrics Pill Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-0.5">
+              Suggested Size
             </span>
-            <span className="font-semibold text-white">
+            <span className="font-bold text-white font-tabular">
+              {decision.suggestedShares} Shares
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-0.5">
+              Target Alloc
+            </span>
+            <span className="font-bold text-white font-tabular">
+              {decision.suggestedAllocationPct}%
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-0.5">
+              Trend Signal
+            </span>
+            <span className="font-bold text-indigo-400 font-mono">
               {decision.marketSummary.trend}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 line-clamp-2">
-            {decision.marketSummary.volumeAnalysis}
-          </p>
-        </div>
 
-        {/* News Sentiment */}
-        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <Newspaper className="h-3.5 w-3.5 text-cyan-400" />
-              <span>News Sentiment</span>
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-0.5">
+              Risk Profile
             </span>
             <span
-              className={`font-semibold ${
-                decision.newsSentiment.score >= 0.5
+              className={`font-bold uppercase ${
+                decision.riskAssessment === "LOW"
                   ? "text-emerald-400"
-                  : decision.newsSentiment.score <= -0.2
-                  ? "text-rose-400"
+                  : decision.riskAssessment === "MEDIUM"
+                  ? "text-amber-400"
+                  : "text-rose-400"
+              }`}
+            >
+              {decision.riskAssessment}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* News Catalyst Snippet */}
+      <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-3 mb-4">
+        <div className="h-8 w-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+          <Newspaper className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between text-xs mb-0.5">
+            <span className="font-semibold text-slate-300">
+              Catalyst: {decision.newsSentiment.source}
+            </span>
+            <span
+              className={`font-tabular font-bold ${
+                decision.newsSentiment.score > 0
+                  ? "text-emerald-400"
                   : "text-amber-400"
               }`}
             >
@@ -174,19 +205,41 @@ export const AIDecisionCard: React.FC<AIDecisionCardProps> = ({
       )}
 
       {/* Card Footer Details button */}
-      {onInspectDetails && (
-        <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {new Date(decision.createdAt).toLocaleTimeString()}
-          </span>
+      <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+        <span className="flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" />
+          {new Date(decision.createdAt).toLocaleTimeString()}
+        </span>
+
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => onInspectDetails(decision)}
+            onClick={() => setShowWaterfall(!showWaterfall)}
             className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
           >
-            <span>Inspect Full Audit Trace</span>
-            <ArrowUpRight className="h-3.5 w-3.5" />
+            <span>{showWaterfall ? "Hide Waterfall" : "View Waterfall"}</span>
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                showWaterfall ? "rotate-180" : ""
+              }`}
+            />
           </button>
+
+          {onInspectDetails && (
+            <button
+              onClick={() => onInspectDetails(decision)}
+              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
+            >
+              <span>Sandbox</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable Inline Decision Waterfall */}
+      {showWaterfall && (
+        <div className="mt-5 pt-5 border-t border-white/10 animate-fade-in">
+          <DecisionWaterfall decision={decision} />
         </div>
       )}
     </div>
