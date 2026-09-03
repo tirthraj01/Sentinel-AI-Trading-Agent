@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import { Workflow } from "lucide-react";
+import { Workflow, Radio } from "lucide-react";
 import { AgentTimeline } from "../components/AgentTimeline";
-import { MOCK_ACTIVITIES } from "../data/mockData";
+import { useAgentStream } from "../hooks/useAgentStream";
 
 export const AgentActivityPage: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState<string>("ALL");
+  const { activities, connected } = useAgentStream(50);
 
-  const filteredActivities = MOCK_ACTIVITIES.filter((act) => {
+  const filteredActivities = activities.filter((act) => {
     if (selectedStage === "ALL") return true;
     return act.stage === selectedStage;
   });
 
-  const stages = ["ALL", "OBSERVE", "ANALYZE", "RISK_CHECK", "BLOCKED", "EXECUTION"];
+  const stages = ["ALL", "OBSERVE", "ANALYZE", "DECIDE", "RISK_CHECK", "BLOCKED", "EXECUTION", "COMPLETE"];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -22,10 +23,22 @@ export const AgentActivityPage: React.FC = () => {
               <Workflow className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Agent Activity & Decision Tracing
-              </h1>
-              <p className="text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Agent Activity & Decision Tracing
+                </h1>
+                <span
+                  className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                    connected
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-slate-800 border-white/10 text-slate-400"
+                  }`}
+                >
+                  <Radio className={`h-3 w-3 ${connected ? "text-emerald-400 animate-pulse" : "text-slate-500"}`} />
+                  <span>{connected ? "LIVE SSE STREAM" : "REST POLLING"}</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
                 Step-by-step transparency feed of every observation, inference, and risk validation
               </p>
             </div>

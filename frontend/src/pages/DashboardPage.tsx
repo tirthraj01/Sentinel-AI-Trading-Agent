@@ -16,15 +16,13 @@ import { PositionTable } from "../components/PositionTable";
 import { PositionDrawer } from "../components/PositionDrawer";
 import { TradeTable } from "../components/TradeTable";
 import { AgentTimeline } from "../components/AgentTimeline";
-import {
-  MOCK_PORTFOLIO,
-  MOCK_POSITIONS,
-  MOCK_DECISIONS,
-  MOCK_TRADES,
-  MOCK_ACTIVITIES,
-  MOCK_RISK_RULES,
-} from "../data/mockData";
 import { Position } from "../types";
+import { usePortfolio } from "../hooks/usePortfolio";
+import { usePositions } from "../hooks/usePositions";
+import { useAgentDecisions } from "../hooks/useAgentDecisions";
+import { useTradeHistory } from "../hooks/useTradeHistory";
+import { useAgentStream } from "../hooks/useAgentStream";
+import { useRiskStatus } from "../hooks/useRiskStatus";
 
 export const DashboardPage: React.FC = () => {
   const { onOpenAnalysis } = useOutletContext<{
@@ -32,6 +30,16 @@ export const DashboardPage: React.FC = () => {
   }>();
 
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+
+  // Live hooks connected to real backend services
+  const { summary: portfolio } = usePortfolio();
+  const { positions } = usePositions();
+  const { decisions } = useAgentDecisions();
+  const { trades } = useTradeHistory();
+  const { activities } = useAgentStream(8);
+  const { riskStatus } = useRiskStatus();
+
+  const latestDecision = decisions[0];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -66,8 +74,8 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Portfolio Value"
-          value={`$${MOCK_PORTFOLIO.equity.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          change={`+$${MOCK_PORTFOLIO.dailyPL.toFixed(2)}`}
+          value={`$${portfolio.equity.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          change={`+$${portfolio.dailyPL.toFixed(2)}`}
           changeType="positive"
           caption="Today's Gain"
           icon={<DollarSign className="h-4 w-4" />}
@@ -75,7 +83,7 @@ export const DashboardPage: React.FC = () => {
         />
         <MetricCard
           label="Daily P/L"
-          value={`+${MOCK_PORTFOLIO.dailyPLPercent}%`}
+          value={`+${portfolio.dailyPLPercent}%`}
           change="+1.37% vs S&P"
           changeType="positive"
           caption="Unrealized Session"
@@ -84,8 +92,8 @@ export const DashboardPage: React.FC = () => {
         />
         <MetricCard
           label="Total Return"
-          value={`+${MOCK_PORTFOLIO.totalPLPercent}%`}
-          change={`+$${MOCK_PORTFOLIO.totalPL.toLocaleString()}`}
+          value={`+${portfolio.totalPLPercent}%`}
+          change={`+$${portfolio.totalPL.toLocaleString()}`}
           changeType="positive"
           caption="Since Inception"
           icon={<Percent className="h-4 w-4" />}
@@ -93,8 +101,8 @@ export const DashboardPage: React.FC = () => {
         />
         <MetricCard
           label="Available Paper Cash"
-          value={`$${MOCK_PORTFOLIO.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          change="$84,241 Buying Pwr"
+          value={`$${portfolio.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+          change={`$${portfolio.buyingPower.toLocaleString()} Buying Pwr`}
           changeType="neutral"
           caption="Ready Capital"
           icon={<Wallet className="h-4 w-4" />}
@@ -103,12 +111,12 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Main Chart Section */}
-      <PortfolioChart portfolio={MOCK_PORTFOLIO} />
+      <PortfolioChart portfolio={portfolio} />
 
       {/* Market Pulse Row */}
       <MarketPulse
         onSelectSymbol={(sym) => {
-          const matchedPos = MOCK_POSITIONS.find((p) => p.symbol === sym);
+          const matchedPos = positions.find((p) => p.symbol === sym);
           if (matchedPos) {
             setSelectedPosition(matchedPos);
           } else {
@@ -119,27 +127,29 @@ export const DashboardPage: React.FC = () => {
 
       {/* AI Intelligence & Risk Posture Dual Hero Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AIDecisionCard
-          decision={MOCK_DECISIONS[0]}
-          onInspectDetails={() => onOpenAnalysis(MOCK_DECISIONS[0].symbol)}
-        />
+        {latestDecision && (
+          <AIDecisionCard
+            decision={latestDecision}
+            onInspectDetails={() => onOpenAnalysis(latestDecision.symbol)}
+          />
+        )}
         <RiskStatusCard
-          evaluation={MOCK_DECISIONS[0].riskResult}
-          rules={MOCK_RISK_RULES}
+          evaluation={latestDecision?.riskResult}
+          rules={riskStatus.rules}
         />
       </div>
 
       {/* Open Positions Table */}
       <PositionTable
-        positions={MOCK_POSITIONS}
+        positions={positions}
         onAnalyzeSymbol={(sym) => onOpenAnalysis(sym)}
         onSelectPosition={(pos) => setSelectedPosition(pos)}
       />
 
       {/* Recent Trades & Agent Timeline Dual Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TradeTable trades={MOCK_TRADES.slice(0, 4)} />
-        <AgentTimeline activities={MOCK_ACTIVITIES.slice(0, 5)} />
+        <TradeTable trades={trades.slice(0, 4)} />
+        <AgentTimeline activities={activities.slice(0, 5)} />
       </div>
 
       {/* Position Detail Slide-over Drawer */}

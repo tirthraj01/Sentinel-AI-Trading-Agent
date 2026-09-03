@@ -12,6 +12,7 @@ export interface ChartPoint {
 
 export interface PortfolioSummary {
   equity: number;
+  totalEquity?: number;
   cash: number;
   buyingPower: number;
   dailyPL: number;
@@ -156,3 +157,21 @@ export interface AIChatMessage {
     label: string;
   };
 }
+
+export type Trade = TradeRecord;
+export type AIDecision = AgentDecision;
+export type AgentActivity = AgentActivityEvent;
+
+export interface RiskStatus {
+  status: string;
+  rules: RiskRuleConfig[];
+  recentVetoes: Array<{ symbol: string; timestamp: string; reasons: string[] }>;
+  metrics: {
+    portfolioDrawdown: number;
+    maxSingleExposure: number;
+    openPositionsCount: number;
+    dailyTradesUsed: number;
+  };
+  killSwitchActive?: boolean;
+}
+

@@ -3,7 +3,8 @@ import { Sparkles, ShieldCheck, ShieldAlert, CheckCircle2, Loader2 } from "lucid
 import { Modal } from "./Modal";
 import { Badge } from "./Badge";
 import { AgentDecision } from "../types";
-import { MOCK_DECISIONS } from "../data/mockData";
+import { api } from "../services/api";
+import { useToast } from "../context/ToastContext";
 
 interface AnalysisModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedDecision, setCompletedDecision] = useState<AgentDecision | null>(null);
 
+  const { success, warning, error: toastError } = useToast();
+
   const steps = [
     "Collecting real-time quotes, technical momentum & order book...",
     "Scanning financial news feeds & calculating NLP sentiment score...",
@@ -33,30 +36,50 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({
     "Finalizing paper order execution verdict...",
   ];
 
-  const handleRunAnalysis = () => {
+  const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
     setCurrentStep(0);
     setCompletedDecision(null);
 
-    // Simulate multi-step agent flow
     let step = 0;
     const interval = setInterval(() => {
       step++;
-      if (step < steps.length) {
+      if (step < steps.length - 1) {
         setCurrentStep(step);
-      } else {
-        clearInterval(interval);
-        setIsAnalyzing(false);
-        // Pick appropriate mock decision
-        const result =
-          scenario === "approved"
-            ? { ...MOCK_DECISIONS[0], symbol: selectedSymbol, runId: `run-${selectedSymbol.toLowerCase()}-${Date.now().toString().slice(-4)}` }
-            : { ...MOCK_DECISIONS[1], symbol: selectedSymbol, runId: `run-${selectedSymbol.toLowerCase()}-${Date.now().toString().slice(-4)}` };
+      }
+    }, 300);
 
+    try {
+      const result = await api.analyzeSymbol({
+        symbol: selectedSymbol,
+        forceScenario: scenario === "approved" ? "APPROVED" : "BLOCKED",
+      });
+
+      clearInterval(interval);
+      setCurrentStep(steps.length - 1);
+
+      setTimeout(() => {
+        setIsAnalyzing(false);
         setCompletedDecision(result);
         onCompleteAnalysis?.(result);
-      }
-    }, 600);
+
+        if (result.status === "APPROVED_EXECUTED") {
+          success(
+            "Paper Trade Executed",
+            `Sentinel approved and placed order for ${result.suggestedShares} shares of ${result.symbol} to Alpaca.`
+          );
+        } else {
+          warning(
+            "Trade Blocked by Risk Engine",
+            result.riskResult?.reasons?.[0] || "Order failed risk constraints. Zero capital risked."
+          );
+        }
+      }, 400);
+    } catch (err) {
+      clearInterval(interval);
+      setIsAnalyzing(false);
+      toastError("Analysis Error", (err as Error).message);
+    }
   };
 
   const handleReset = () => {
@@ -111,16 +134,16 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({
                 onClick={() => setScenario("approved")}
                 className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                   scenario === "approved"
-                    ? "bg-emerald-950/30 border-emerald-500/50 shadow-inner"
-                    : "bg-white/[0.02] border-white/5 hover:border-white/15"
+                    ? "bg-emerald-950/20 border-emerald-500/40 text-emerald-300"
+                    : "bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/20"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-bold text-white">Scenario A: Approved</span>
+                  <span className="font-bold text-xs text-white">Scenario A: Approved</span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  High AI conviction (86%), exposure within limits. Risk approves and paper order is placed.
+                <p className="text-[11px] text-slate-400">
+                  High conviction (85%), passes all 6 risk rules. Submitted to Alpaca paper sandbox.
                 </p>
               </div>
 
@@ -128,113 +151,92 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({
                 onClick={() => setScenario("blocked")}
                 className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                   scenario === "blocked"
-                    ? "bg-rose-950/30 border-rose-500/50 shadow-inner"
-                    : "bg-white/[0.02] border-white/5 hover:border-white/15"
+                    ? "bg-rose-950/20 border-rose-500/40 text-rose-300"
+                    : "bg-white/[0.02] border-white/5 text-slate-400 hover:border-white/20"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <ShieldAlert className="h-4 w-4 text-rose-400" />
-                  <span className="text-xs font-bold text-white">Scenario B: Risk Veto</span>
+                  <span className="font-bold text-xs text-white">Scenario B: Risk Veto</span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  AI proposes BUY, but breaches confidence (68%) or exposure limits. Risk engine halts execution!
+                <p className="text-[11px] text-slate-400">
+                  Breaches position or confidence limits. Blocked by Deterministic Risk Engine.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Action Trigger Button */}
+          {/* Action Button */}
           <div className="pt-2">
             <button
               onClick={handleRunAnalysis}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all active:scale-98"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-[0.99] transition-all"
             >
               <Sparkles className="h-4 w-4" />
-              <span>Launch Sentinel Agent Cycle ({selectedSymbol})</span>
+              <span>Trigger Full Autonomous Pipeline</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Analyzing Progress State */}
+      {/* Progressing Step State */}
       {isAnalyzing && (
-        <div className="py-6 space-y-5">
-          <div className="flex items-center justify-center">
-            <div className="relative">
-              <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-              </div>
+        <div className="py-8 px-4 text-center space-y-6 animate-fade-in">
+          <div className="relative mx-auto w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping opacity-30" />
+            <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/40 text-indigo-400">
+              <Loader2 className="h-7 w-7 animate-spin" />
             </div>
           </div>
 
-          <div className="text-center">
-            <h4 className="text-sm font-bold text-white">
-              Agent Execution in Progress
+          <div>
+            <h4 className="text-base font-bold text-white mb-1">
+              Analyzing {selectedSymbol}...
             </h4>
-            <p className="text-xs text-indigo-300 font-mono mt-0.5">
-              Analyzing {selectedSymbol} • Cycle Step {currentStep + 1} of {steps.length}
+            <p className="text-xs text-indigo-300 font-mono">
+              {steps[currentStep]}
             </p>
           </div>
 
-          {/* Animated Steps Checklist */}
-          <div className="space-y-2 bg-[#0A0B0E] p-3.5 rounded-2xl border border-white/5">
-            {steps.map((text, idx) => (
-              <div
-                key={idx}
-                className={`flex items-center gap-2.5 text-xs transition-opacity duration-300 ${
-                  idx === currentStep
-                    ? "text-white font-semibold"
-                    : idx < currentStep
-                    ? "text-slate-400 line-through opacity-70"
-                    : "text-slate-600 opacity-40"
-                }`}
-              >
-                {idx < currentStep ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                ) : idx === currentStep ? (
-                  <Loader2 className="h-4 w-4 text-indigo-400 animate-spin shrink-0" />
-                ) : (
-                  <div className="h-4 w-4 rounded-full border border-slate-700 shrink-0" />
-                )}
-                <span>{text}</span>
-              </div>
-            ))}
+          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+            />
           </div>
         </div>
       )}
 
-      {/* Completed Result Display */}
-      {completedDecision && (
-        <div className="space-y-4 py-2">
+      {/* Finished Result State */}
+      {!isAnalyzing && completedDecision && (
+        <div className="space-y-4 animate-fade-in">
           <div
             className={`p-4 rounded-2xl border ${
               completedDecision.status === "APPROVED_EXECUTED"
-                ? "bg-emerald-950/20 border-emerald-500/40"
-                : "bg-rose-950/20 border-rose-500/40"
+                ? "bg-emerald-950/20 border-emerald-500/30"
+                : "bg-rose-950/20 border-rose-500/30"
             }`}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-white font-mono">
+                <span className="font-mono font-bold text-base text-white">
                   {completedDecision.symbol}
                 </span>
-                <Badge variant={completedDecision.decision === "BUY" ? "buy" : "hold"}>
-                  {completedDecision.decision}
-                </Badge>
                 <Badge
                   variant={
                     completedDecision.status === "APPROVED_EXECUTED"
                       ? "approved"
                       : "blocked"
                   }
+                  size="sm"
                 >
                   {completedDecision.status === "APPROVED_EXECUTED"
-                    ? "APPROVED"
-                    : "BLOCKED BY RISK"}
+                    ? "APPROVED & EXECUTED"
+                    : "BLOCKED BY RISK GUARD"}
                 </Badge>
               </div>
-              <span className="text-xs font-bold text-white font-tabular">
-                Confidence: {completedDecision.confidence}%
+              <span className="text-xs font-mono text-slate-400">
+                AI Conviction: {completedDecision.confidence}%
               </span>
             </div>
 

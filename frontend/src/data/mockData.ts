@@ -6,6 +6,7 @@ import {
   TradeRecord,
   AgentActivityEvent,
   RiskRuleConfig,
+  RiskStatus,
 } from "../types";
 
 export const MOCK_PORTFOLIO: PortfolioSummary = {
@@ -800,3 +801,23 @@ export const MOCK_RISK_RULES: RiskRuleConfig[] = [
     isViolation: false,
   },
 ];
+
+export const MOCK_RISK_STATUS: RiskStatus = {
+  status: "ACTIVE_GUARD",
+  rules: MOCK_RISK_RULES,
+  recentVetoes: [
+    {
+      symbol: "TSLA",
+      timestamp: new Date().toISOString(),
+      reasons: ["Projected TSLA position of 12.4% exceeds 10.0% single-asset limit."],
+    },
+  ],
+  metrics: {
+    portfolioDrawdown: 0.0,
+    maxSingleExposure: 8.72,
+    openPositionsCount: MOCK_POSITIONS.length,
+    dailyTradesUsed: 2,
+  },
+  killSwitchActive: false,
+};
+

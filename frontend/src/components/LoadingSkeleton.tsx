@@ -61,3 +61,19 @@ export const TableSkeleton: React.FC<{ rows?: number }> = ({ rows = 4 }) => {
     </div>
   );
 };
+
+export const LoadingSkeleton: React.FC<{
+  type?: "card" | "table" | "chart";
+  rows?: number;
+}> = ({ type = "card", rows = 4 }) => {
+  if (type === "table") return <TableSkeleton rows={rows} />;
+  if (type === "chart") return <ChartSkeleton />;
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <MetricCardSkeleton />
+      <MetricCardSkeleton />
+      <MetricCardSkeleton />
+      <MetricCardSkeleton />
+    </div>
+  );
+};

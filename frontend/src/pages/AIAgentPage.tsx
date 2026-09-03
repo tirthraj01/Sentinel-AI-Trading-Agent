@@ -10,10 +10,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import { SentinelMascot } from "../components/SentinelMascot";
 import { AIDecisionCard } from "../components/AIDecisionCard";
-import { MOCK_DECISIONS } from "../data/mockData";
+import { LoadingSkeleton } from "../components/LoadingSkeleton";
+import { useAgentDecisions } from "../hooks/useAgentDecisions";
 
 export const AIAgentPage: React.FC = () => {
   const { onOpenAnalysis } = useOutletContext<{
@@ -21,8 +23,9 @@ export const AIAgentPage: React.FC = () => {
   }>();
 
   const [decisionFilter, setDecisionFilter] = useState<string>("ALL");
+  const { decisions, loading, refetch } = useAgentDecisions();
 
-  const filteredDecisions = MOCK_DECISIONS.filter((dec) => {
+  const filteredDecisions = decisions.filter((dec) => {
     if (decisionFilter === "ALL") return true;
     if (decisionFilter === "APPROVED") return dec.status === "APPROVED_EXECUTED";
     if (decisionFilter === "BLOCKED") return dec.status === "BLOCKED_BY_RISK";
@@ -34,8 +37,7 @@ export const AIAgentPage: React.FC = () => {
       id: "obs",
       name: "OBSERVE",
       icon: Eye,
-      status: "complete",
-      statusLabel: "✓ Complete",
+      statusLabel: "✓ Ingesting",
       desc: "Quotes, order books & news sentiment",
       color: "text-cyan-400",
       border: "border-cyan-500/40",
@@ -45,9 +47,8 @@ export const AIAgentPage: React.FC = () => {
       id: "ana",
       name: "ANALYZE",
       icon: BrainCircuit,
-      status: "complete",
-      statusLabel: "✓ Complete",
-      desc: "Technical momentum & multi-modal signals",
+      statusLabel: "✓ Active",
+      desc: "Technical momentum & multi-signal synthesis",
       color: "text-indigo-400",
       border: "border-indigo-500/40",
       bg: "bg-indigo-500/10",
@@ -56,8 +57,7 @@ export const AIAgentPage: React.FC = () => {
       id: "dec",
       name: "DECIDE",
       icon: Lightbulb,
-      status: "complete",
-      statusLabel: "✓ Complete",
+      statusLabel: "✓ Synthesizing",
       desc: "Hypothesis proposal & confidence scoring",
       color: "text-purple-400",
       border: "border-purple-500/40",
@@ -67,7 +67,6 @@ export const AIAgentPage: React.FC = () => {
       id: "risk",
       name: "RISK CHECK",
       icon: ShieldCheck,
-      status: "active",
       statusLabel: "● Enforcing",
       desc: "Deterministic mathematical rule guard",
       color: "text-emerald-400",
@@ -78,7 +77,6 @@ export const AIAgentPage: React.FC = () => {
       id: "exe",
       name: "EXECUTE",
       icon: Send,
-      status: "waiting",
       statusLabel: "○ Guarded",
       desc: "Alpaca Paper Trading (Only if approved)",
       color: "text-amber-400",
@@ -89,7 +87,6 @@ export const AIAgentPage: React.FC = () => {
       id: "res",
       name: "RESULT",
       icon: CheckCircle2,
-      status: "complete",
       statusLabel: "✓ Audited",
       desc: "PostgreSQL immutable decision trail",
       color: "text-slate-300",
@@ -116,13 +113,23 @@ export const AIAgentPage: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => onOpenAnalysis("NVDA")}
-          className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all self-start sm:self-auto"
-        >
-          <Sparkles className="h-4 w-4" />
-          <span>Launch Agent Cycle</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => refetch()}
+            disabled={loading}
+            className="p-2.5 rounded-2xl bg-slate-900/60 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            title="Refresh decisions"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => onOpenAnalysis("NVDA")}
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition-all"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>Launch Agent Cycle</span>
+          </button>
+        </div>
       </div>
 
       {/* Visual Interactive Agent Pipeline */}
@@ -133,11 +140,11 @@ export const AIAgentPage: React.FC = () => {
               Agent Decision & Execution Pipeline
             </h3>
             <p className="text-xs text-slate-400">
-              Deterministic separation: The AI proposes, the Risk Engine holds veto authority
+              Deterministic separation: The AI proposes, the Risk Engine holds absolute veto authority
             </p>
           </div>
           <span className="text-[11px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">
-            Automated State Machine
+            Live State Machine
           </span>
         </div>
 
@@ -205,15 +212,19 @@ export const AIAgentPage: React.FC = () => {
       </div>
 
       {/* Decision Cards List */}
-      <div className="space-y-6">
-        {filteredDecisions.map((dec) => (
-          <AIDecisionCard
-            key={dec.id}
-            decision={dec}
-            onInspectDetails={() => onOpenAnalysis(dec.symbol)}
-          />
-        ))}
-      </div>
+      {loading && decisions.length === 0 ? (
+        <LoadingSkeleton type="card" />
+      ) : (
+        <div className="space-y-6">
+          {filteredDecisions.map((dec) => (
+            <AIDecisionCard
+              key={dec.id}
+              decision={dec}
+              onInspectDetails={() => onOpenAnalysis(dec.symbol)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
