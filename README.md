@@ -90,3 +90,4 @@ sentinel/
 ## Safety Commitment
 
 SENTINEL is created strictly for algorithmic research, agentic evaluation, and educational simulation. It does not provide financial advice and is hardcoded to prevent execution on live brokerage accounts.
+Enjoy the Trade!
